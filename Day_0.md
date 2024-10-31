@@ -46,7 +46,7 @@ Here’s what I aim to complete today as I begin the course:
 ---
 
 # 🔗 **Follow My Journey on GitHub**:
-   - I’ll be documenting my notes, code, and reflections here as I progress: [GitHub Repository Link](https://github.com/ajaykr2712/Daily-ML-DS-Discipline)
+   - I’ll be documenting my notes, code, and reflections here as I progress: [GitHub Repository Link](https://github.com/ajaykr2712/ML_DS/tree/main)
 
 ---
 
