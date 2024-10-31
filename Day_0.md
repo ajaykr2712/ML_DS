@@ -4,6 +4,7 @@
 Today marks the official start of my disciplined ML journey! I’m diving into **Andrew Ng’s Machine Learning course on Coursera** to solidify my foundations in Machine Learning concepts and methodologies.
 
 ---
+![image](https://github.com/user-attachments/assets/be9e75c1-e691-4894-b0e3-f2af6ab46be8)
 
 ## 📚 **Course Overview:**
 Andrew Ng's course is widely regarded as one of the best introductions to Machine Learning. This course will cover essential ML concepts and techniques, including:
