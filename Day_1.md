@@ -5,6 +5,8 @@ Today's focus is on mastering **Linear Regression with Multiple Variables** and 
 
 ---
 
+![image](https://github.com/user-attachments/assets/64a96aee-d0a1-4d40-84ce-591965523f91)
+
 ## 📚 **Course Topics Covered**
 Continuing with Andrew Ng’s course, today’s topics include:
 - **Linear Regression with Multiple Variables**
