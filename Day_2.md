@@ -4,6 +4,7 @@
 Building on yesterday’s progress, today I’m diving deeper into **Supervised Learning** and expanding my understanding of **Linear Regression** with multiple variables.
 
 ---
+![image](https://github.com/user-attachments/assets/6aaabb77-d8bf-4908-939c-d399c454af3d)
 
 ## 📚 **Topics for Day 2:**
 Today’s focus:
