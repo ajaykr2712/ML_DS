@@ -4,6 +4,8 @@
 Continuing the journey with structured learning from Abhishek Thakur’s book, focusing on essential concepts in Machine Learning project organization and evaluation.
 
 ---
+![image](https://github.com/user-attachments/assets/4d03790a-ff32-4c5b-b325-e9dca9294c9f)
+
 
 ### 🌟 Topics Covered:
 1. **Cross-Validation**
