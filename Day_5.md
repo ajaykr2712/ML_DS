@@ -1,4 +1,5 @@
 # 🚀 Day 5: Book Study - *Approaching (Almost) Any Machine Learning Problem* by Abhishek Thakur
+![image](https://github.com/user-attachments/assets/93a98a4c-8159-4847-8810-618c317d7c35)
 
 ### 📘 Topics Covered
 - **Cross-Validation**: Delving into methods of partitioning data for robust model evaluation and minimizing overfitting.
