@@ -1,4 +1,5 @@
 # 🚀 Day 6: Advanced Study - *Approaching (Almost) Any Machine Learning Problem*
+![image](https://github.com/user-attachments/assets/3fc09e0a-6e42-4253-b687-b31130dfec7b)
 
 Today’s journey continued with an in-depth exploration of **model evaluation** and **optimization strategies** from *Approaching (Almost) Any Machine Learning Problem* by Abhishek Thakur. 📖 Here’s a look into my findings and insights:
 
