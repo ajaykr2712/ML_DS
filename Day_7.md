@@ -4,6 +4,8 @@
 Today's session was packed with essential ML concepts related to **model evaluation** and **selection strategies**. This foundation will enhance model accuracy and ensure reliability for real-world applications.
 
 ---
+![image](https://github.com/user-attachments/assets/be6303ab-0060-4f5f-abf6-0957460676b7)
+
 
 ## 📌 Topics Covered:
 
