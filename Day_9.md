@@ -8,7 +8,34 @@
    - Explored k-fold, stratified k-fold, and LOOCV to ensure robust model evaluation.
 3. **Hyperparameter Tuning**:
    - Grid Search vs. Randomized Search for optimizing model performance.
+Model Training & Evaluation with Cross-Validation
+Objective: Implementing cross-validation to evaluate model performance on multiple subsets of data for robustness.
 
+Code Snippets
+python
+Copy code
+# Importing libraries
+from sklearn.datasets import load_iris
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+
+# Loading data
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# Defining the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Cross-validation
+scores = cross_val_score(model, X, y, cv=5)
+
+# Results
+print("Cross-Validation Scores:", scores)
+print("Average Cross-Validation Score:", scores.mean())
+Key Steps
+Model Selection: Chose RandomForestClassifier for handling multi-class classification.
+Cross-Validation: Applied 5-fold cross-validation for model evaluation consistency.
+Performance Analysis: Calculated average performance across folds for reliability.
 ## 🔍 Key Insights
 - **Model Evaluation Metrics**:
   - Precision and recall are crucial when dealing with imbalanced data.
