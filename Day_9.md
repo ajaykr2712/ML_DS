@@ -1,4 +1,5 @@
 # 🚀 Day 9: Model Evaluation and Selection
+![image](https://github.com/user-attachments/assets/8a1e3ff5-62ba-4009-ac6b-33f34cc0649b)
 
 ## 📚 Topics Covered
 1. **Model Evaluation Techniques**:
