@@ -1,4 +1,5 @@
 # 🚀 Day 8: Advanced Machine Learning Study
+![image](https://github.com/user-attachments/assets/9f7c9c37-f04a-4a46-92f4-d542f2dfb7be)
 
 ## 📚 Topics Covered
 1. **Feature Engineering**:
