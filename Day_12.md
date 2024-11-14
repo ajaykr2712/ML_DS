@@ -1,6 +1,8 @@
 # 🚀 Day 12: Advanced Machine Learning - Deep Dive into Evaluation and Project Structuring
 
 ## 📅 Date: November 12th
+![image](https://github.com/user-attachments/assets/d558e165-94c3-4c3d-ad1c-21c3f3a3d330)
+
 
 ## 📘 Focus Areas
 - **Evaluation Techniques**: Detailed review of classification and regression metrics.
