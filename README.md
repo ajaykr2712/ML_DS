@@ -1,5 +1,5 @@
 # ML_DS
-# 🎉 Day 0 - A New Beginning: Diwali Discipline for Machine Learning & Data Science
+# 🎉 Day 0 - A New Beginning:  for Machine Learning & Data Science
 
 ## **Commitment Statement**
 Today marks **Day 0** of my renewed journey in Machine Learning and Data Science, with a focus on eliminating procrastination and embracing discipline. Inspired by the spirit of Diwali, I’m committing to a consistent, focused, and productive learning path.
