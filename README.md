@@ -12,28 +12,10 @@ Today marks **Day 0** of my renewed journey in Machine Learning and Data Science
 
 ---
 
-## 🌌 **Mindset Shift: Diwali as a Catalyst for Discipline**
-Diwali is a time of renewal, celebration, and self-improvement. Inspired by this festival, I’m ready to burn away distractions and bad habits to fuel my passion for Machine Learning and Data Science with:
+## I’m ready to burn away distractions and bad habits to fuel my passion for Machine Learning and Data Science with:
 - **Consistency**: Committing to daily progress, regardless of setbacks.
 - **Focus**: Setting short, achievable goals every day.
 - **Accountability**: Logging every step, every day in this GitHub repository.
-
----
-
-## 📅 **Learning Schedule and Plan:**
-Here’s a roadmap of the specific areas I plan to focus on, broken down to make each step manageable.
-
-### **Weekly Structure:**
-
-| Day       | Focus Area                                       |
-|-----------|--------------------------------------------------|
-| Monday    | **Mathematics**: Linear Algebra, Calculus, Probability |
-| Tuesday   | **Data Analysis**: EDA, Statistics, Visualizations |
-| Wednesday | **Python for ML**: Numpy, Pandas, Data Wrangling |
-| Thursday  | **ML Algorithms**: SVM, Decision Trees, KNN       |
-| Friday    | **Advanced ML**: Neural Networks, CNNs, RNNs     |
-| Saturday  | **Project Development & Research**               |
-| Sunday    | **Reflection and Review**                        |
 
 ---
 
