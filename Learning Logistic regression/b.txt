@@ -1,0 +1,16 @@
+Working with Real Data
+When you are learning about Machine Learning it is best to actually experiment with
+real-world data, not just artificial datasets. Fortunately, there are thousands of open
+datasets to choose from, ranging across all sorts of domains. Here are a few places
+you can look to get data:
+• Popular open data repositories:
+— UC Irvine Machine Learning Repository
+— Kaggle datasets
+— Amazon’s AWS datasets
+• Meta portals (they list open data repositories):
+— http://dataportals.org/
+— http://opendatamonitor.eu/
+— http://quandl.com/
+• Other pages listing many popular open data repositories:
+— Wikipedia’s list of Machine Learning datasets
+— Quora.com question
