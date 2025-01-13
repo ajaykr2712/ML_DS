@@ -6,7 +6,7 @@
 
 ## 🚀 **Today's Agenda**  
 
-1. **Understanding Advanced ML Algorithms**:
+1. **Understood Advanced ML Algorithms**:
    - Focused on **XGBoost** and **LightGBM**.
    - Studied their differences, advantages, and scenarios for practical use.
 
