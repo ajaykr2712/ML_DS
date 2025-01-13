@@ -18,3 +18,5 @@
 3. **Practical Case Study**:
    - Implemented a classification task with **imbalanced data** using SMOTE (Synthetic Minority Oversampling Technique).  
    - Compared results with balanced
+
+4. ## Will be implementing projects on this
