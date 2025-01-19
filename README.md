@@ -85,6 +85,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired by [relevant projects/people]
 - Built with support from [organizations/communities]
 
----
+----
 
-⭐ Star this repository if you find it helpful!
+# ⭐ Star this repository if you find it helpful!
