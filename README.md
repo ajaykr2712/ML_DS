@@ -88,3 +88,46 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ----
 
 # ⭐ Star this repository if you find it helpful!
+
+
+Directory structure:
+└── ajaykr2712-ml_ds/
+    ├── README.md
+    ├── Evaluation/
+    │   ├── Eval.md
+    │   └── metrics.md
+    ├── Learning Logistic regression/
+    │   ├── Logistic_Reggr.md
+    │   ├── Logistic_reuglar.py
+    │   ├── Regularized_Logistic_Regression_Implementation.py
+    │   ├── b.txt
+    │   ├── logistic_regression_from_scratch.py
+    │   ├── visual.md
+    │   ├── visual.py
+    │   └── ML_DS/
+    ├── ML_Scratch/
+    │   ├── ml.md
+    │   └── ml.py
+    ├── Projects/
+    │   ├── 02.End-to-End-ML-Project.ipynb
+    │   ├── Work_Implementation.ipynb
+    │   ├── concep2.md
+    │   ├── concep3.md
+    │   ├── concep4.md
+    │   ├── concept10.md
+    │   ├── concept11.md
+    │   ├── concept5.md
+    │   ├── concept6.md
+    │   ├── concept7.md
+    │   ├── concept8.md
+    │   └── concept9.md
+    ├── Strange/
+    │   ├── Expert.ipynb
+    │   ├── tweet_emotions.csv
+    │   ├── .DS_Store
+    │   └── Books/
+    │       └── Artificial_Intelligence_A_Modern_Approach.md
+    ├── certs/
+    │   └── Top_ML_certs.md
+    └── .ipynb_checkpoints/
+        └── Work_Implementation-checkpoint.ipynb
