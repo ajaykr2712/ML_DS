@@ -1,4 +1,4 @@
-Name of the project/
+Name of the Project/
 ├── 📂 data/
 │   ├── raw/                  # Raw tweet_emotions dataset
 │   └── processed/            # Processed and cleaned data
