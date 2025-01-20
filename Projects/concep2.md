@@ -19,4 +19,7 @@ Build a sophisticated emotion recognition system using the tweet_emotions datase
 - Ensemble methods
 - Model interpretation
 - Performance optimization
+- Deployment
+- Documentation
+
 
