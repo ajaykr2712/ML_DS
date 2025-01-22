@@ -10,6 +10,8 @@ scikit-learn>=1.0.0
 # Text Processing
 nltk>=3.8.1
 spacy>=3.5.0
+validators>=0.20.0
+netaddr>=0.8.0
 
 # Visualization
 matplotlib>=3.7.0
