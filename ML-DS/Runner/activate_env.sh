@@ -12,4 +12,4 @@ set +a
 echo "ML Environment activated!"
 echo "Python: $(which python)"
 echo "Pip: $(which pip)"
-echo "Working directory: $PWD" 
+echo "Working directory: $PWD"
