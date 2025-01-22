@@ -11,8 +11,30 @@ on:
       - 'ML_Implementation/**'
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install ruff pylint flake8
+    
+    - name: Run linting
+      run: |
+        ruff check ML_Implementation/
+        pylint ML_Implementation/src/
+        flake8 ML_Implementation/src/
+
   train:
-    runs-on: self-hosted  # Using self-hosted runner for GPU access
+    needs: lint
+    runs-on: self-hosted  # For GPU access
     
     steps:
     - uses: actions/checkout@v4
@@ -20,7 +42,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
     
-    - name: Build and Push Docker Image
+    - name: Build ML Docker Image
       uses: docker/build-push-action@v5
       with:
         context: ./ML_Implementation
@@ -36,22 +58,18 @@ jobs:
         docker run --gpus all \
           -v ${PWD}/ML_Implementation/data:/app/data \
           -v ${PWD}/ML_Implementation/models:/app/models \
+          -v ${PWD}/ML_Implementation/logs:/app/logs \
           ml-emotion:latest
     
-    - name: Upload Model Artifacts
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: trained-model
-        path: ML_Implementation/models/final_model/
-    
-    - name: Upload Training Logs
-      uses: actions/upload-artifact@v3
-      with:
-        name: training-logs
+        name: ml-artifacts
         path: |
+          ML_Implementation/models/final_model/
           ML_Implementation/logs/
           ML_Implementation/data/processed/
-
+    
     - name: Cleanup
       if: always()
       run: |
