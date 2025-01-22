@@ -1,0 +1,59 @@
+name: ML Training Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'ML_Implementation/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'ML_Implementation/**'
+
+jobs:
+  train:
+    runs-on: self-hosted  # Using self-hosted runner for GPU access
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build and Push Docker Image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./ML_Implementation
+        file: ./ML_Implementation/Dockerfile
+        push: false
+        load: true
+        tags: ml-emotion:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Train Model
+      run: |
+        docker run --gpus all \
+          -v ${PWD}/ML_Implementation/data:/app/data \
+          -v ${PWD}/ML_Implementation/models:/app/models \
+          ml-emotion:latest
+    
+    - name: Upload Model Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: trained-model
+        path: ML_Implementation/models/final_model/
+    
+    - name: Upload Training Logs
+      uses: actions/upload-artifact@v3
+      with:
+        name: training-logs
+        path: |
+          ML_Implementation/logs/
+          ML_Implementation/data/processed/
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker rmi ml-emotion:latest || true
+        docker system prune -f 
