@@ -1,0 +1,28 @@
+name: ml-runner
+os: linux
+arch: x64
+setup:
+  python_version: "3.10"
+  cuda_version: "11.8"
+  cudnn_version: "8.6"
+
+resources:
+  cpu_count: 8
+  memory_gb: 32
+  gpu_count: 1
+  gpu_type: "NVIDIA"
+
+directories:
+  data: "./data"
+  models: "./models"
+  logs: "./logs"
+  checkpoints: "./models/checkpoints"
+
+monitoring:
+  enabled: true
+  interval_seconds: 60
+  metrics:
+    - cpu_usage
+    - memory_usage
+    - gpu_usage
+    - disk_usage 

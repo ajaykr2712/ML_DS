@@ -1,0 +1,46 @@
+name: ML Training Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'ML_Implementation/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'ML_Implementation/**'
+
+jobs:
+  train:
+    runs-on: self-hosted  # Specify self-hosted runner
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install virtualenv
+    
+    - name: Install ML Dependencies
+      run: |
+        python3 -m virtualenv venv
+        source venv/bin/activate
+        pip install torch torchvision tensorflow scikit-learn pandas numpy matplotlib jupyter
+        pip install -r ML_Implementation/requirements.txt
+    
+    - name: Train Model
+      run: |
+        source venv/bin/activate
+        python ML_Implementation/train.py
+    
+    - name: Evaluate Model
+      run: |
+        source venv/bin/activate
+        python ML_Implementation/evaluate.py
+    
+    - name: Store Model Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: model-artifacts
+        path: ML_Implementation/models/

@@ -1,0 +1,39 @@
+# Virtual Environment
+venv/
+.env
+.venv
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# ML specific
+wandb/
+mlruns/
+logs/
+models/checkpoints/
+data/raw/
+data/processed/
+data/interim/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db 
