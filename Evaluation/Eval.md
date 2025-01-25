@@ -1,4 +1,4 @@
-# The discussion of Various Evaluation Metrics of each algorithm and various types of algorithms that rely on these metrics
+# The discussion of Various Evaluation Metrics of each algorithm and various types of algorithms that rely on these metrics.....
 
 If we talk about classification problems, the most common metrics used are:
 - Accuracy
@@ -19,3 +19,4 @@ When it comes to regression, the most commonly used evaluation metrics are:
 - Mean percentage error (MPE)
 - Mean absolute percentage error (MAPE)
 - R2
+- Errors to be reviewed and resolved 
