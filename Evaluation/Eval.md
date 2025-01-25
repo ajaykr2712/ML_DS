@@ -6,7 +6,7 @@ If we talk about classification problems, the most common metrics used are:
 - Recall (R)
 - F1 score (F1)
 - Area under the ROC (Receiver Operating Characteristic) curve or simply
-AUC (AUC)
+AUC (AUC)...
 - Log loss
 - Precision at k (P@k)
 - Average precision at k (AP@k)
