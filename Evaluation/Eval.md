@@ -18,5 +18,6 @@ When it comes to regression, the most commonly used evaluation metrics are:
 - Root mean squared logarithmic error (RMSLE)
 - Mean percentage error (MPE)
 - Mean absolute percentage error (MAPE)
-- R2
+- R2...
+- R1
 - Errors to be reviewed and resolved 
