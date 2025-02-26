@@ -79,20 +79,27 @@ jobs:
       run: pytest ML_Implementation/tests --collect-only --verbose
 
     - name: Run Unit Tests
-      run: pytest ML_Implementation/tests --junitxml=unittest-results.xml --verbose --capture=sys || true
+      run: pytest ML_Implementation/tests --junitxml=ML_Implementation/tests/unittest-results.xml --verbose --capture=sys || true
+
+    - name: Check if unittest-results.xml Exists
+      run: ls -lah ML_Implementation/tests/ || echo "Test results not found!"
 
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
       with:
         name: unit-test-results
-        path: unittest-results.xml
+        path: ML_Implementation/tests/
+
 
 
   all_test_results:
     name: Collect All Test Results
-    runs-on: ubuntu-latest  # Runs independently of previous jobs
+    runs-on: ubuntu-latest
 
     steps:
+    - name: List Available Artifacts (Debugging)
+      run: ls -lah
+
     - name: Download Unit Test Results
       uses: actions/download-artifact@v4
       with:
@@ -101,6 +108,6 @@ jobs:
 
     - name: Display Test Results
       run: cat ML_Implementation/tests/unittest-results.xml || echo "No test results found!"
-    
+
     - name: Final Status
       run: echo "All stages executed! 🚀"
