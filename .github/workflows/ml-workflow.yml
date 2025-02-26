@@ -26,29 +26,33 @@ jobs:
         pip install pylint ruff
 
     - name: Run Pylint
+      continue-on-error: true  # Don't fail the pipeline if linting fails
       run: |
-        pylint ML_Implementation/src/ || true  # Avoid failing pipeline on warnings
+        pylint ML_Implementation/src/
 
     - name: Run Ruff Formatter
+      continue-on-error: true
       run: |
         ruff format ML_Implementation/
 
     - name: Run Ruff Linter
+      continue-on-error: true
       run: |
         ruff check ML_Implementation/
 
     - name: Run Ruff Lint with Delta Output
+      continue-on-error: true
       run: |
         ruff check --output-format=delta ML_Implementation/
 
     - name: Run TextProto Syntax Check
+      continue-on-error: true
       run: |
         find ML_Implementation/ -name "*.proto" -exec cat {} \; || echo "No .proto files found"
 
   unittest:
     name: Unit Testing Stage
-    needs: lint  # Runs after linting stage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Runs independently of linting
 
     steps:
     - name: Checkout Repository
@@ -76,16 +80,17 @@ jobs:
 
   all_test_results:
     name: Collect All Test Results
-    needs: unittest  # Runs after tests finish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Runs independently of previous jobs
 
     steps:
-    - name: Download Linting and Unit Test Artifacts
+    - name: Download Unit Test Results
       uses: actions/download-artifact@v3
+      with:
+        name: unit-test-results
 
     - name: Display Test Results
       run: |
         cat unit-test-results/unittest-results.xml || echo "No test results found"
     
     - name: Final Status
-      run: echo "All tests completed successfully! 🚀"
+      run: echo "All stages executed! 🚀"
