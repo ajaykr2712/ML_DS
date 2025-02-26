@@ -1,7 +1,7 @@
 # Top Evaluation Metrics
-Classification Metrics
+Classification Metrics.
 ## Accuracy
-Definition: The ratio of correctly predicted instances to the total instances.
+Definition: The ratio of correctly predicted instances to the total instances  to be prepared and done simultaneously ..
 Formula:
  
 
