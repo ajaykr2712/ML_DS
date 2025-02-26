@@ -97,10 +97,10 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: unit-test-results
+        path: ML_Implementation/tests/
 
     - name: Display Test Results
-      run: |
-        cat unit-test-results/unittest-results.xml || echo "No test results found"
+      run: cat ML_Implementation/tests/unittest-results.xml || echo "No test results found!"
     
     - name: Final Status
       run: echo "All stages executed! 🚀"
