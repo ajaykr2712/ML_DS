@@ -73,7 +73,7 @@ jobs:
         pytest ML_Implementation/tests --junitxml=unittest-results.xml
 
     - name: Upload Test Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: unit-test-results
         path: unittest-results.xml
@@ -84,7 +84,7 @@ jobs:
 
     steps:
     - name: Download Unit Test Results
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: unit-test-results
 
