@@ -1,4 +1,4 @@
-# The discussion of Various Evaluation Metrics of each algorithm and various types of algorithms that rely on these metrics
+# The discussion of Various Evaluation Metrics of each algorithm and various types of algorithms that rely on these metrics.....
 
 If we talk about classification problems, the most common metrics used are:
 - Accuracy
@@ -6,7 +6,7 @@ If we talk about classification problems, the most common metrics used are:
 - Recall (R)
 - F1 score (F1)
 - Area under the ROC (Receiver Operating Characteristic) curve or simply
-AUC (AUC)
+AUC (AUC)...
 - Log loss
 - Precision at k (P@k)
 - Average precision at k (AP@k)
@@ -18,4 +18,6 @@ When it comes to regression, the most commonly used evaluation metrics are:
 - Root mean squared logarithmic error (RMSLE)
 - Mean percentage error (MPE)
 - Mean absolute percentage error (MAPE)
-- R2
+- R2...
+- R1
+- Errors to be reviewed and resolved 
