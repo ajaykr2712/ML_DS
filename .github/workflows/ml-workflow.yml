@@ -1,4 +1,4 @@
-name: ML Training Pipeline for time being 
+name: ML Training Pipeline
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
     paths:
       - 'ML_Implementation/**'
   pull_request:
-    branches: [ "main" ]
+    branches-ignore: [ "main" ]  # Triggers only for feature branches
     paths:
       - 'ML_Implementation/**'
 
@@ -24,20 +24,24 @@ jobs:
     - name: Install linting tools
       run: |
         python -m pip install --upgrade pip
-        pip install ruff pylint flake8
+        pip install ruff pylint
     
     - name: Run linting
       run: |
         ruff check ML_Implementation/
         pylint ML_Implementation/src/
-        flake8 ML_Implementation/src/
 
-  train:
+  train_main:
     needs: lint
-    runs-on: self-hosted  # For GPU access
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: self-hosted  # Ensure this has GPU access
     
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Verify GPU Access
+      run: |
+        nvidia-smi
     
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -53,20 +57,22 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
     
-    - name: Train Model
+    - name: Train Model (Main)
       run: |
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
         docker run --gpus all \
           -v ${PWD}/ML_Implementation/data:/app/data \
           -v ${PWD}/ML_Implementation/models:/app/models \
           -v ${PWD}/ML_Implementation/logs:/app/logs \
+          -e MODEL_VERSION=$TIMESTAMP \
           ml-emotion:latest
     
-    - name: Upload Artifacts
+    - name: Upload Artifacts (Main)
       uses: actions/upload-artifact@v3
       with:
-        name: ml-artifacts
+        name: ml-artifacts-main-${{ github.run_id }}
         path: |
-          ML_Implementation/models/final_model/
+          ML_Implementation/models/
           ML_Implementation/logs/
           ML_Implementation/data/processed/
     
@@ -74,4 +80,53 @@ jobs:
       if: always()
       run: |
         docker rmi ml-emotion:latest || true
-        docker system prune -f 
+        docker system prune -f
+
+  train_feature:
+    needs: lint
+    if: github.event_name == 'pull_request'
+    runs-on: self-hosted  # Ensure this has GPU access
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Verify GPU Access
+      run: |
+        nvidia-smi
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build ML Docker Image (Feature Branch)
+      uses: docker/build-push-action@v5
+      with:
+        context: ./ML_Implementation
+        file: ./ML_Implementation/Dockerfile
+        push: false
+        load: true
+        tags: ml-emotion-feature:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Train Model (Feature Branch)
+      run: |
+        docker run --gpus all \
+          -v ${PWD}/ML_Implementation/data:/app/data \
+          -v ${PWD}/ML_Implementation/models:/app/models \
+          -v ${PWD}/ML_Implementation/logs:/app/logs \
+          ml-emotion-feature:latest
+    
+    - name: Upload Artifacts (Feature Branch)
+      uses: actions/upload-artifact@v3
+      with:
+        name: ml-artifacts-feature-${{ github.run_id }}
+        path: |
+          ML_Implementation/models/
+          ML_Implementation/logs/
+          ML_Implementation/data/processed/
+    
+    - name: Cleanup
+      if: always()
+      run: |
+        docker rmi ml-emotion-feature:latest || true
+        docker system prune -f
