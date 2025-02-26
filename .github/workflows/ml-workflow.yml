@@ -50,6 +50,10 @@ jobs:
       run: |
         find ML_Implementation/ -name "*.proto" -exec cat {} \; || echo "No .proto files found"
 
+    - name: Debug Test Directory
+      run: ls -lahR ML_Implementation/tests/ || echo "Test directory not found!"
+      
+    
   unittest:
     name: Unit Testing Stage
     runs-on: ubuntu-latest  # Runs independently of linting
