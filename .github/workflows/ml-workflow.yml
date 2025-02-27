@@ -50,9 +50,13 @@ jobs:
       run: |
         find ML_Implementation/ -name "*.proto" -exec cat {} \; || echo "No .proto files found"
 
+    - name: Debug Test Directory
+      run: ls -lahR ML_Implementation/tests/ || echo "Test directory not found!"
+      
+    
   unittest:
     name: Unit Testing Stage
-    runs-on: ubuntu-latest  # Runs independently of linting
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Repository
@@ -66,31 +70,49 @@ jobs:
     - name: Install Test Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install pytest numpy
+
+    - name: Set PYTHONPATH
+      run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
+
+    - name: Debug Test Discovery
+      run: pytest ML_Implementation/tests --collect-only --verbose
 
     - name: Run Unit Tests
-      run: |
-        pytest ML_Implementation/tests --junitxml=unittest-results.xml
+      run: pytest ML_Implementation/tests --junitxml=ML_Implementation/tests/unittest-results.xml --verbose --capture=sys || true
+
+    - name: Debug Test Results Directory
+      run: ls -lah ML_Implementation/tests/ || echo "Test results directory not found!"
 
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
       with:
         name: unit-test-results
-        path: unittest-results.xml
+        path: ML_Implementation/tests/
+
+
+
 
   all_test_results:
     name: Collect All Test Results
-    runs-on: ubuntu-latest  # Runs independently of previous jobs
+    runs-on: ubuntu-latest
 
     steps:
+    - name: List Available Artifacts
+      run: ls -lah
+
     - name: Download Unit Test Results
       uses: actions/download-artifact@v4
       with:
         name: unit-test-results
+        path: ML_Implementation/tests/
+
+    - name: Debug Downloaded Files
+      run: ls -lah ML_Implementation/tests/ || echo "Artifact download failed!"
 
     - name: Display Test Results
-      run: |
-        cat unit-test-results/unittest-results.xml || echo "No test results found"
-    
+      run: cat ML_Implementation/tests/unittest-results.xml || echo "No test results found!"
+
     - name: Final Status
       run: echo "All stages executed! 🚀"
+    
