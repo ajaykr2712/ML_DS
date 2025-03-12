@@ -1,5 +1,5 @@
 import pytest
-from ML_Implementation.src.script import add_numbers, multiply_numbers, mean_of_list
+from src.script import add_numbers, multiply_numbers, mean_of_list
 
 def test_add_numbers():
     assert add_numbers(2, 3) == 5
