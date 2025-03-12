@@ -1,80 +1,32 @@
-# Top Evaluation Metrics
-Classification Metrics.
-## Accuracy
-Definition: The ratio of correctly predicted instances to the total instances to be prepared and done simultaneously ..
-Formula:
- 
+```mermaid
+graph TD;
+  A[Evaluation Metrics] --> B[Classification Metrics];
+  A --> C[Regression Metrics];
 
- Python Calculation:
- ```
-from sklearn.metrics import accuracy_score
-accuracy = accuracy_score(y_true, y_pred)
+  B --> B1[Accuracy];
+  B1 -->|Formula| B1a((Correct Predictions / Total Predictions))
+  B1 -->|Python Code| B1b["accuracy_score(y_true, y_pred)"];
 
- ```
+  B --> B2[Precision];
+  B2 -->|Formula| B2a((TP / (TP + FP)))
+  B2 -->|Python Code| B2b["precision_score(y_true, y_pred)"];
 
+  B --> B3[Recall];
+  B3 -->|Formula| B3a((TP / (TP + FN)))
+  B3 -->|Python Code| B3b["recall_score(y_true, y_pred)"];
 
- ## Precision
-Definition: The ratio of true positive predictions to the total predicted positives.
-Formula:
- 
+  B --> B4[F1 Score];
+  B4 -->|Formula| B4a((2 * (Precision * Recall) / (Precision + Recall)))
+  B4 -->|Python Code| B4b["f1_score(y_true, y_pred)"];
 
-Python Calculation:
+  B --> B5[Confusion Matrix];
+  B5 -->|Definition| B5a["Summarizes classification results"]
+  B5 -->|Python Code| B5b["confusion_matrix(y_true, y_pred)"];
 
-```
-from sklearn.metrics import precision_score
-precision = precision_score(y_true, y_pred)
+  B --> B6[AUC-ROC];
+  B6 -->|Definition| B6a["Measures classifier's ability to separate classes"]
+  B6 -->|Python Code| B6b["roc_auc_score(y_true, y_scores)"];
 
-```
-
-## Recall (Sensitivity)
-
-Definition: The ratio of true positive predictions to all actual positives.
-
-Python Calculation:
-```
-
-from sklearn.metrics import recall_score
-recall = recall_score(y_true, y_pred)
-
-```
-
-## F1 Score
-Definition: The harmonic mean of precision and recall, providing a balance between the two.
-
-
-```
-from sklearn.metrics import f1_score
-f1 = f1_score(y_true, y_pred)
-
-```
-
-## Confusion Matrix
-Definition: A table that summarizes the performance of a classification algorithm by showing true positives, false positives, true negatives, and false negatives.
-
-```
-from sklearn.metrics import confusion_matrix
-cm = confusion_matrix(y_true, y_pred)
-
-```
-
-## Area Under Curve (AUC-ROC)
-Definition: Measures the ability of a classifier to distinguish between classes; it is particularly useful for binary classification problems
-
-```
-from sklearn.metrics import roc_auc_score
-auc = roc_auc_score(y_true, y_scores)  # y_scores are the probabilities of the positive class
-
-```
-
-# Regression Metrics
-
-## Mean Absolute Error (MAE)
-
-Definition: The average absolute difference between predicted and actual values.
-
-
-```
-from sklearn.metrics import mean_absolute_error
-mae = mean_absolute_error(y_true, y_pred)
-
-```
+  C --> C1[Mean Absolute Error (MAE)];
+  C1 -->|Formula| C1a(("Mean(|y_true - y_pred|)"));
+  C1 -->|Python Code| C1b["mean_absolute_error(y_true, y_pred)"];
