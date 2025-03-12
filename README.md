@@ -2,6 +2,4 @@
 
 ## Build. Train. Optimize. Repeat.  
 
- 
-
-## No hype. Just real ML.  
+### No hype. Just real ML.  
