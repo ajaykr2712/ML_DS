@@ -46,7 +46,7 @@ Effectively leveraging MDT involves understanding its core components:
     *   **Dial-in (Dynamic):** The tooling collector (client) establishes the session to the network device (server) and defines the subscription. The subscription is tied to the session's life and is not part of the device's running configuration [34-36]. NETCONF and gNMI support dial-in [37]. Dial-in subscriptions are lost during HA failover [37, 38].
     *   **Dial-out (Configured):** The subscription is statically configured on the network device (client) using CLI, NETCONF, or RESTCONF, and the device initiates the session to the collector (server) [34, 35, 39]. gRPC supports dial-out [39]. Dial-out subscriptions are persistent and automatically reconnect after outages [38, 39].
 
-
+## Leveraging MDT: Tools and Solutions Ecosystem
 
 A rich ecosystem of tools and platforms exists to leverage MDT data for various operational tasks:
 
