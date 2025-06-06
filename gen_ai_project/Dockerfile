@@ -7,11 +7,14 @@ WORKDIR /app
 # Copy the requirements file into the container
 COPY requirements.txt .
 
+
+
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .
+
 
 # Expose a port if your application runs a server (e.g., for an API)
 # EXPOSE 8000
