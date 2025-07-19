@@ -1,0 +1,71 @@
+model:
+  name: "ddpm"
+  architecture: "diffusion"
+  image_size: 64
+  num_channels: 3
+  
+  unet:
+    dim: 64
+    dim_mults: [1, 2, 4, 8]
+    num_resnet_blocks: 2
+    layer_attns: [false, false, true, true]
+    layer_cross_attns: [false, false, false, false]
+    attn_heads: 8
+    attn_dim_head: 32
+    
+  diffusion:
+    timesteps: 1000
+    beta_schedule: "cosine"
+    beta_start: 0.0001
+    beta_end: 0.02
+    clip_denoised: true
+    
+training:
+  batch_size: 128
+  num_epochs: 100
+  learning_rate: 1e-4
+  weight_decay: 0.0
+  beta1: 0.9
+  beta2: 0.99
+  ema_decay: 0.995
+  gradient_clip_val: 1.0
+  
+  # Loss function
+  loss_type: "l2"  # or "l1", "huber"
+  
+data:
+  dataset_path: "data/images"
+  image_size: 64
+  num_workers: 4
+  augment_horizontal_flip: true
+  normalize: true
+  
+generation:
+  num_samples: 64
+  guidance_scale: 7.5
+  num_inference_steps: 50
+  eta: 0.0
+  
+logging:
+  log_level: "INFO"
+  log_dir: "logs"
+  save_images_every_n_steps: 1000
+  wandb:
+    project: "gen-ai-diffusion"
+    entity: "your-team"
+    tags: ["diffusion", "ddpm"]
+  
+checkpointing:
+  save_dir: "checkpoints"
+  save_every_n_epochs: 10
+  keep_last_n: 3
+  
+evaluation:
+  eval_every_n_steps: 2000
+  metrics: ["fid", "is"]
+  num_eval_samples: 10000
+  
+distributed:
+  backend: "nccl"
+  world_size: 1
+  rank: 0

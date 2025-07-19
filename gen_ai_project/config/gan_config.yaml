@@ -1,0 +1,76 @@
+model:
+  name: "stylegan2"
+  architecture: "gan"
+  latent_dim: 512
+  image_size: 256
+  num_channels: 3
+  
+  generator:
+    num_layers: 8
+    base_channels: 512
+    max_channels: 512
+    use_style_mixing: true
+    truncation_psi: 0.7
+    
+  discriminator:
+    num_layers: 8
+    base_channels: 64
+    max_channels: 512
+    use_spectral_norm: true
+    
+training:
+  batch_size: 16
+  num_epochs: 100
+  g_lr: 0.002
+  d_lr: 0.002
+  beta1: 0.0
+  beta2: 0.99
+  r1_gamma: 10.0
+  path_regularize: 2.0
+  style_mixing_prob: 0.9
+  
+  # Progressive growing
+  progressive_growing: false
+  fade_in_duration: 10000
+  
+  # EMA for generator
+  ema_beta: 0.995
+  
+data:
+  dataset_path: "data/images"
+  image_size: 256
+  num_workers: 4
+  pin_memory: true
+  
+  # Data augmentation
+  horizontal_flip: true
+  normalize: true
+  
+generation:
+  num_samples: 64
+  truncation_psi: 0.7
+  noise_mode: "random"
+  
+logging:
+  log_level: "INFO"
+  log_dir: "logs"
+  save_images_every_n_steps: 500
+  wandb:
+    project: "gen-ai-stylegan"
+    entity: "your-team"
+    tags: ["gan", "image-generation"]
+  
+checkpointing:
+  save_dir: "checkpoints"
+  save_every_n_epochs: 5
+  keep_last_n: 5
+  
+evaluation:
+  eval_every_n_steps: 2000
+  metrics: ["fid", "is", "lpips"]
+  num_eval_samples: 10000
+  
+distributed:
+  backend: "nccl"
+  world_size: 1
+  rank: 0

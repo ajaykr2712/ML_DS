@@ -1,0 +1,66 @@
+model:
+  name: "vae"
+  architecture: "variational_autoencoder"
+  latent_dim: 128
+  image_size: 64
+  num_channels: 3
+  
+  encoder:
+    hidden_dims: [32, 64, 128, 256, 512]
+    activation: "relu"
+    batch_norm: true
+    
+  decoder:
+    hidden_dims: [512, 256, 128, 64, 32]
+    activation: "relu"
+    batch_norm: true
+    final_activation: "sigmoid"
+    
+training:
+  batch_size: 128
+  num_epochs: 100
+  learning_rate: 1e-3
+  weight_decay: 1e-5
+  beta1: 0.9
+  beta2: 0.999
+  
+  # VAE-specific parameters
+  kld_weight: 1.0
+  reconstruction_loss: "mse"  # or "bce"
+  
+  # Beta-VAE
+  beta_vae: false
+  beta: 4.0
+  
+data:
+  dataset_path: "data/images"
+  image_size: 64
+  num_workers: 4
+  normalize: true
+  
+generation:
+  num_samples: 64
+  sample_from_prior: true
+  
+logging:
+  log_level: "INFO"
+  log_dir: "logs"
+  save_images_every_n_steps: 500
+  wandb:
+    project: "gen-ai-vae"
+    entity: "your-team"
+    tags: ["vae", "autoencoder"]
+  
+checkpointing:
+  save_dir: "checkpoints"
+  save_every_n_epochs: 5
+  keep_last_n: 5
+  
+evaluation:
+  eval_every_n_steps: 1000
+  metrics: ["reconstruction_loss", "kld_loss", "fid"]
+  
+distributed:
+  backend: "nccl"
+  world_size: 1
+  rank: 0
