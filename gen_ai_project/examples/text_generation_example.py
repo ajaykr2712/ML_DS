@@ -1,13 +1,21 @@
 """
-Text generation example using GPT-style transformer.
+Text Generation Example using GPT Model
+Comprehensive example demonstrating text generation with transformer models
 """
 
-import torch
-from transformers import GPT2Tokenizer
-import sys
 import os
+import sys
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+import yaml
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+import math
 
-# Add src to path
+# Add project root to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from models.transformer import GPTModel
