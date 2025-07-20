@@ -1,50 +1,133 @@
+# Diffusion Model Configuration
+# Production-ready configuration for Denoising Diffusion Probabilistic Models (DDPM)
+
 model:
   name: "ddpm"
   architecture: "diffusion"
-  image_size: 64
-  num_channels: 3
   
+  # Image Configuration
+  image_size: 64                   # Image resolution (64x64, 128x128, 256x256, 512x512)
+  num_channels: 3                  # Number of image channels (1 for grayscale, 3 for RGB)
+  
+  # U-Net Architecture
   unet:
-    dim: 64
-    dim_mults: [1, 2, 4, 8]
-    num_resnet_blocks: 2
-    layer_attns: [false, false, true, true]
-    layer_cross_attns: [false, false, false, false]
-    attn_heads: 8
-    attn_dim_head: 32
+    dim: 64                        # Base dimension
+    dim_mults: [1, 2, 4, 8]       # Dimension multipliers for each level
+    num_resnet_blocks: 2           # Number of ResNet blocks per level
+    layer_attns: [false, false, true, true]  # Self-attention layers
+    layer_cross_attns: [false, false, false, false]  # Cross-attention layers
+    attn_heads: 8                  # Number of attention heads
+    attn_dim_head: 32              # Attention head dimension
+    dropout: 0.1                   # Dropout rate
+    use_linear_attn: false         # Use linear attention for efficiency
     
+    # Advanced Features
+    resnet_groups: 8               # Number of groups for GroupNorm
+    use_convnext: false            # Use ConvNeXt blocks instead of ResNet
+    convnext_mult: 2               # ConvNeXt expansion ratio
+    
+  # Diffusion Process
   diffusion:
-    timesteps: 1000
-    beta_schedule: "cosine"
-    beta_start: 0.0001
-    beta_end: 0.02
-    clip_denoised: true
+    timesteps: 1000                # Number of diffusion steps
+    beta_schedule: "cosine"        # Noise schedule: "linear", "cosine", "sigmoid"
+    beta_start: 0.0001             # Starting beta value
+    beta_end: 0.02                 # Ending beta value
+    clip_denoised: true            # Clip denoised predictions
     
+    # Advanced Scheduling
+    cosine_s: 0.008                # Cosine schedule parameter
+    predict_v: false               # Predict v-parameterization
+    loss_type: "l2"                # Loss type: "l1", "l2", "huber"
+    
+    # Sampling
+    ddim_eta: 0.0                  # DDIM sampling parameter
+    clip_sample_range: 1.0         # Sample clipping range
 training:
-  batch_size: 128
-  num_epochs: 100
-  learning_rate: 1e-4
-  weight_decay: 0.0
-  beta1: 0.9
-  beta2: 0.99
-  ema_decay: 0.995
-  gradient_clip_val: 1.0
+  # Optimization
+  batch_size: 128                  # Training batch size
+  eval_batch_size: 64              # Evaluation batch size
+  num_epochs: 100                  # Number of training epochs
+  max_steps: null                  # Maximum training steps (overrides epochs)
   
-  # Loss function
-  loss_type: "l2"  # or "l1", "huber"
+  # Learning Rate
+  learning_rate: 1e-4              # Initial learning rate
+  lr_scheduler: "cosine"           # LR scheduler: "cosine", "linear", "constant"
+  lr_warmup_steps: 1000            # Warmup steps
+  min_lr: 1e-6                     # Minimum learning rate
   
+  # Optimizer
+  optimizer: "adamw"               # Optimizer: "adam", "adamw", "sgd"
+  weight_decay: 0.0                # Weight decay
+  beta1: 0.9                       # Adam beta1
+  beta2: 0.99                      # Adam beta2
+  eps: 1e-8                        # Adam epsilon
+  
+  # Regularization
+  gradient_clip_val: 1.0           # Gradient clipping value
+  ema_decay: 0.995                 # Exponential moving average decay
+  use_ema: true                    # Use EMA for model weights
+  
+  # Loss Configuration
+  loss_type: "l2"                  # Loss type: "l1", "l2", "huber"
+  loss_reduction: "mean"           # Loss reduction: "mean", "sum"
+  
+  # Mixed Precision
+  use_amp: true                    # Use automatic mixed precision
+  amp_level: "O1"                  # AMP optimization level
+  
+  # Validation
+  val_check_interval: 1000         # Validation check interval
+  val_percent_check: 1.0           # Percentage of validation data to use
 data:
-  dataset_path: "data/images"
-  image_size: 64
-  num_workers: 4
-  augment_horizontal_flip: true
-  normalize: true
+  # Dataset Configuration
+  dataset_path: "data/images"      # Path to image dataset
+  dataset_type: "folder"           # Dataset type: "folder", "hf", "custom"
+  image_size: 64                   # Image resolution for training
+  num_workers: 4                   # Number of data loading workers
+  pin_memory: true                 # Pin memory for data loading
+  persistent_workers: true         # Keep workers persistent
   
+  # Data Augmentation
+  augment_horizontal_flip: true    # Random horizontal flip
+  augment_rotation: false          # Random rotation
+  augment_color_jitter: false      # Color jittering
+  augment_gaussian_blur: false     # Gaussian blur
+  
+  # Preprocessing
+  normalize: true                  # Normalize images to [-1, 1]
+  center_crop: true                # Center crop images
+  resize_mode: "lanczos"           # Resize interpolation mode
+  
+  # Data Splits
+  train_split: 0.9                 # Training data split
+  val_split: 0.1                   # Validation data split
+  
+  # Cache Configuration
+  cache_dir: "./cache"             # Cache directory
+  use_cache: true                  # Use data caching
+
 generation:
-  num_samples: 64
-  guidance_scale: 7.5
-  num_inference_steps: 50
-  eta: 0.0
+  # Generation Configuration
+  num_samples: 64                  # Number of samples to generate
+  guidance_scale: 7.5              # Classifier-free guidance scale
+  num_inference_steps: 50          # Number of denoising steps
+  eta: 0.0                         # DDIM eta parameter
+  
+  # Sampling Methods
+  sampler: "ddpm"                  # Sampler: "ddpm", "ddim", "pndm", "dpm"
+  skip_type: "uniform"             # Skip type for DDIM: "uniform", "quad"
+  
+  # Generation Controls
+  clip_sample: true                # Clip samples to valid range
+  clip_sample_range: 1.0           # Sample clipping range
+  
+  # Batch Generation
+  batch_size: 16                   # Generation batch size
+  
+  # Advanced Features
+  use_karras_sigmas: false         # Use Karras noise schedule
+  sigma_min: 0.002                 # Minimum sigma value
+  sigma_max: 80.0                  # Maximum sigma value
   
 logging:
   log_level: "INFO"
