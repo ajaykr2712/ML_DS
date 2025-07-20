@@ -1,13 +1,20 @@
 """
-Advanced ML Utilities and Helper Functions
-==========================================
-
-A comprehensive collection of utility functions for machine learning tasks
-including data preprocessing, feature engineering, model evaluation, and visualization.
-
-Author: ML Arsenal Team
-Date: July 2025
+Machine Learning Utilities - Helper functions and tools for ML workflows
 """
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from typing import List, Tuple, Dict, Optional, Union, Any
+from sklearn.model_selection import train_test_split, cross_val_score, learning_curve
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder, OneHotEncoder
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score, 
+    roc_auc_score, confusion_matrix, classification_report,
+    mean_squared_error, mean_absolute_error, r2_score
+)
+import warnings
 
 import numpy as np
 import pandas as pd
