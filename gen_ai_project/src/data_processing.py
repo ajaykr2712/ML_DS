@@ -216,6 +216,10 @@ class TextDataLoader:
     
     def load_huggingface_dataset(self, dataset_name: str, split: str = "train") -> List[str]:
         """Load dataset from Hugging Face."""
+        if datasets is None:
+            self.logger.error("datasets library not available. Install with: pip install datasets")
+            return []
+        
         try:
             dataset = datasets.load_dataset(
                 dataset_name, 
@@ -483,7 +487,7 @@ def main():
             # Prepare datasets
             train_loader, val_loader, test_loader = data_loader.prepare_datasets(config.data_dir)
             
-            print(f"Created dataloaders:")
+            print("Created dataloaders:")
             print(f"  Train: {len(train_loader)} batches")
             print(f"  Val: {len(val_loader)} batches")
             print(f"  Test: {len(test_loader)} batches")
