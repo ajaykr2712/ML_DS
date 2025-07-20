@@ -43,7 +43,6 @@ except ImportError:
 
 # Image evaluation metrics (for future use)
 try:
-    from scipy import linalg
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
