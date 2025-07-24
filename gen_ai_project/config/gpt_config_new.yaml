@@ -1,0 +1,182 @@
+# GPT Model Configuration
+# Production-ready configuration for Generative Pre-trained Transformer
+
+model:
+  name: "custom_gpt"
+  architecture: "transformer"
+  
+  # Model Architecture
+  vocab_size: 50257                # Vocabulary size (GPT-2 tokenizer)
+  d_model: 768                     # Model dimension
+  num_layers: 12                   # Number of transformer layers
+  num_heads: 12                    # Number of attention heads
+  d_ff: 3072                       # Feed-forward dimension (4 * d_model)
+  max_seq_length: 1024            # Maximum sequence length
+  
+  # Regularization
+  dropout: 0.1                     # Dropout rate
+  attention_dropout: 0.1           # Attention dropout rate
+  residual_dropout: 0.1            # Residual connection dropout
+  layer_norm_eps: 1e-5            # Layer normalization epsilon
+  
+  # Position Encoding
+  position_encoding_type: "learned" # "learned" or "sinusoidal"
+  max_position_embeddings: 1024    # Maximum position embeddings
+  
+  # Activation Functions
+  activation: "gelu"               # Activation function: "gelu", "relu", "swish"
+  
+  # Model Initialization
+  initializer_range: 0.02          # Standard deviation for weight initialization
+  
+  # Advanced Features
+  use_cache: true                  # Use key-value caching for generation
+  gradient_checkpointing: false    # Enable gradient checkpointing to save memory
+  tie_word_embeddings: true        # Tie input and output embeddings
+
+training:
+  # Optimization
+  batch_size: 8                    # Training batch size
+  eval_batch_size: 16              # Evaluation batch size
+  gradient_accumulation_steps: 8   # Gradient accumulation steps
+  max_grad_norm: 1.0              # Gradient clipping norm
+  
+  # Learning Rate
+  learning_rate: 5e-5              # Initial learning rate
+  lr_scheduler: "cosine"           # Learning rate scheduler: "linear", "cosine", "constant"
+  warmup_steps: 500                # Warmup steps for learning rate
+  min_lr_ratio: 0.1               # Minimum learning rate ratio
+  
+  # Optimizer (AdamW)
+  optimizer: "adamw"               # Optimizer type
+  weight_decay: 0.01               # Weight decay
+  beta1: 0.9                       # Adam beta1
+  beta2: 0.999                     # Adam beta2
+  eps: 1e-8                        # Adam epsilon
+  
+  # Training Schedule
+  max_epochs: 10                   # Maximum training epochs
+  max_steps: -1                    # Maximum training steps (-1 for epoch-based)
+  eval_steps: 500                  # Evaluation frequency
+  save_steps: 1000                 # Model saving frequency
+  logging_steps: 100               # Logging frequency
+  
+  # Early Stopping
+  early_stopping: true             # Enable early stopping
+  patience: 3                      # Early stopping patience
+  min_delta: 0.001                # Minimum improvement for early stopping
+  
+  # Mixed Precision
+  use_fp16: true                   # Use 16-bit floating point
+  fp16_opt_level: "O1"            # FP16 optimization level
+  
+  # Data Loading
+  num_workers: 4                   # Number of data loading workers
+  pin_memory: true                 # Pin memory for data loading
+  prefetch_factor: 2               # Prefetch factor for data loading
+
+data:
+  # Dataset Configuration
+  dataset_name: "custom"           # Dataset name
+  data_dir: "./data"              # Data directory
+  cache_dir: "./cache"            # Cache directory
+  
+  # Text Processing
+  tokenizer_name: "gpt2"          # Tokenizer name
+  max_length: 1024                # Maximum text length
+  truncation: true                # Enable text truncation
+  padding: "max_length"           # Padding strategy
+  
+  # Data Augmentation
+  use_augmentation: false         # Enable data augmentation
+  augmentation_prob: 0.1          # Augmentation probability
+  
+  # Data Split
+  train_split: 0.8                # Training data split
+  val_split: 0.1                  # Validation data split
+  test_split: 0.1                 # Test data split
+  
+  # Preprocessing
+  lowercase: false                # Convert text to lowercase
+  remove_special_chars: false     # Remove special characters
+  min_seq_length: 10              # Minimum sequence length
+
+generation:
+  # Text Generation Configuration
+  max_new_tokens: 100             # Maximum new tokens to generate
+  min_length: 10                  # Minimum generation length
+  
+  # Decoding Strategy
+  do_sample: true                 # Use sampling for generation
+  temperature: 0.7                # Sampling temperature
+  top_k: 50                       # Top-k sampling
+  top_p: 0.9                      # Top-p (nucleus) sampling
+  repetition_penalty: 1.2         # Repetition penalty
+  
+  # Beam Search
+  num_beams: 1                    # Number of beams for beam search
+  early_stopping_generation: true # Early stopping for generation
+  
+  # Special Tokens
+  pad_token_id: 50256             # Padding token ID
+  eos_token_id: 50256             # End-of-sequence token ID
+  bos_token_id: 50256             # Beginning-of-sequence token ID
+
+evaluation:
+  # Evaluation Metrics
+  compute_perplexity: true        # Compute perplexity
+  compute_bleu: true              # Compute BLEU score
+  compute_rouge: true             # Compute ROUGE score
+  
+  # Evaluation Settings
+  eval_accumulation_steps: 1      # Evaluation accumulation steps
+  prediction_loss_only: false    # Only compute prediction loss
+  
+  # Generation Evaluation
+  eval_generation: true           # Evaluate text generation
+  num_eval_samples: 100           # Number of samples for generation evaluation
+  eval_prompts:                   # Evaluation prompts
+    - "The future of artificial intelligence"
+    - "In a world where technology"
+    - "Scientists have discovered"
+
+logging:
+  # Logging Configuration
+  log_level: "INFO"               # Logging level
+  log_file: "training.log"        # Log file path
+  
+  # Weights & Biases
+  use_wandb: true                 # Use Weights & Biases
+  wandb_project: "gpt-training"   # W&B project name
+  wandb_run_name: "gpt-experiment" # W&B run name
+  
+  # TensorBoard
+  use_tensorboard: true           # Use TensorBoard
+  tensorboard_dir: "./logs"       # TensorBoard log directory
+
+checkpointing:
+  # Model Checkpointing
+  output_dir: "./checkpoints"     # Output directory for checkpoints
+  save_total_limit: 3             # Maximum number of checkpoints to keep
+  save_best_model: true           # Save best model based on evaluation
+  best_model_metric: "eval_loss"  # Metric for best model selection
+  
+  # Resume Training
+  resume_from_checkpoint: null    # Path to checkpoint for resuming training
+  overwrite_output_dir: false     # Overwrite output directory
+
+hardware:
+  # Hardware Configuration
+  device: "auto"                  # Device: "auto", "cpu", "cuda", "mps"
+  dataloader_num_workers: 4       # Number of dataloader workers
+  dataloader_pin_memory: true     # Pin memory for dataloaders
+  
+  # Multi-GPU
+  use_multi_gpu: false            # Use multiple GPUs
+  gpu_ids: [0]                    # GPU IDs to use
+  
+  # Memory Optimization
+  gradient_accumulation_steps: 8  # Gradient accumulation for memory efficiency
+  max_memory_mb: null             # Maximum memory usage in MB
+
+seed: 42                          # Random seed for reproducibility
