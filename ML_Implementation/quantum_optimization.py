@@ -588,6 +588,6 @@ if __name__ == "__main__":
     
     print(f"Best solution: {best_solution}")
     print(f"Best fitness: {best_fitness:.6f}")
-    print(f"Expected optimum: 0.0 at origin")
+    print("Expected optimum: 0.0 at origin")
     
     print("\nQuantum-inspired optimization tests completed!")
