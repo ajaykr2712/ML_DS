@@ -18,8 +18,7 @@ License: MIT
 """
 
 import numpy as np
-import pandas as pd
-from typing import Dict, List, Tuple, Any, Optional, Callable
+from typing import List, Tuple, Callable
 from abc import ABC, abstractmethod
 import logging
 from dataclasses import dataclass
@@ -27,8 +26,6 @@ from sklearn.base import BaseEstimator
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy.optimize import minimize
 import warnings
 warnings.filterwarnings('ignore')
 
