@@ -1,0 +1,260 @@
+# ML Arsenal - Example Configuration File
+# ======================================
+# This is an example configuration file that demonstrates the structure
+# and organization of configurations in the ML Arsenal platform
+
+# Project Information
+project:
+  name: "ml_arsenal_example"
+  version: "1.0.0"
+  description: "Example ML project configuration"
+  author: "ML Arsenal Team"
+  
+# Data Configuration
+data:
+  # Data sources
+  sources:
+    training_data: "data/processed/train.parquet"
+    validation_data: "data/processed/val.parquet"
+    test_data: "data/processed/test.parquet"
+  
+  # Data processing
+  preprocessing:
+    target_column: "target"
+    feature_columns: ["feature_1", "feature_2", "feature_3"]
+    categorical_features: ["category_1", "category_2"]
+    numerical_features: ["num_1", "num_2", "num_3"]
+    
+    # Scaling and normalization
+    scaling:
+      method: "standard"  # standard, minmax, robust
+      fit_on_train: true
+    
+    # Missing value handling
+    missing_values:
+      strategy: "median"  # mean, median, mode, drop
+      fill_value: null
+    
+    # Feature engineering
+    feature_engineering:
+      polynomial_features: false
+      interaction_features: true
+      log_transform: ["num_1", "num_2"]
+  
+  # Data validation
+  validation:
+    schema_validation: true
+    drift_detection: true
+    quality_checks: true
+
+# Model Configuration
+model:
+  # Model type and parameters
+  type: "random_forest"  # Options: linear, random_forest, xgboost, neural_network
+  
+  # Model-specific parameters
+  parameters:
+    n_estimators: 100
+    max_depth: 10
+    min_samples_split: 2
+    min_samples_leaf: 1
+    random_state: 42
+  
+  # Feature selection
+  feature_selection:
+    enabled: true
+    method: "recursive_elimination"  # univariate, recursive_elimination, lasso
+    n_features: 20
+
+# Training Configuration
+training:
+  # Basic training settings
+  test_size: 0.2
+  validation_size: 0.2
+  random_state: 42
+  stratify: true
+  
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    method: "stratified_kfold"  # kfold, stratified_kfold, time_series_split
+    n_splits: 5
+    shuffle: true
+  
+  # Hyperparameter optimization
+  hyperparameter_optimization:
+    enabled: true
+    method: "optuna"  # grid_search, random_search, optuna, hyperopt
+    n_trials: 100
+    timeout: 3600  # seconds
+    
+    # Parameter search space
+    search_space:
+      n_estimators: [50, 100, 200, 500]
+      max_depth: [5, 10, 15, 20, null]
+      min_samples_split: [2, 5, 10]
+      min_samples_leaf: [1, 2, 4]
+  
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 10
+    min_delta: 0.001
+    monitor: "val_loss"
+
+# Evaluation Configuration
+evaluation:
+  # Metrics to compute
+  metrics:
+    classification: ["accuracy", "precision", "recall", "f1", "roc_auc"]
+    regression: ["mae", "mse", "rmse", "r2", "mape"]
+    
+  # Evaluation settings
+  settings:
+    threshold_optimization: true
+    confidence_intervals: true
+    bootstrap_samples: 1000
+    
+  # Model interpretation
+  interpretation:
+    enabled: true
+    methods: ["shap", "permutation_importance", "partial_dependence"]
+    
+  # Visualization
+  visualization:
+    confusion_matrix: true
+    roc_curve: true
+    precision_recall_curve: true
+    feature_importance: true
+    learning_curves: true
+
+# Deployment Configuration
+deployment:
+  # Deployment target
+  target: "local"  # local, docker, kubernetes, aws, gcp, azure
+  
+  # API configuration
+  api:
+    host: "0.0.0.0"
+    port: 8080
+    workers: 4
+    timeout: 30
+    
+  # Resource requirements
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+    gpu: 0
+    
+  # Scaling
+  scaling:
+    min_replicas: 1
+    max_replicas: 10
+    target_cpu_utilization: 70
+
+# Monitoring Configuration
+monitoring:
+  # Performance monitoring
+  performance:
+    enabled: true
+    metrics: ["latency", "throughput", "error_rate", "accuracy"]
+    alert_thresholds:
+      latency_p95: 1000  # milliseconds
+      error_rate: 0.05   # 5%
+      accuracy_drop: 0.1 # 10%
+  
+  # Data drift monitoring
+  drift_detection:
+    enabled: true
+    methods: ["kolmogorov_smirnov", "chi_square", "psi"]
+    reference_window: 7  # days
+    detection_window: 1  # days
+    alert_threshold: 0.05
+  
+  # Model drift monitoring
+  model_drift:
+    enabled: true
+    retrain_threshold: 0.1  # 10% accuracy drop
+    retrain_schedule: "daily"
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Log destinations
+  handlers:
+    console: true
+    file: true
+    remote: false
+  
+  # Log files
+  files:
+    app_log: "logs/app.log"
+    model_log: "logs/model.log"
+    performance_log: "logs/performance.log"
+  
+  # Log rotation
+  rotation:
+    max_size: "10MB"
+    backup_count: 5
+
+# Experiment Tracking
+experiment_tracking:
+  # Tracking backend
+  backend: "mlflow"  # mlflow, wandb, tensorboard, neptune
+  
+  # MLflow configuration
+  mlflow:
+    tracking_uri: "sqlite:///experiments/mlflow.db"
+    experiment_name: "ml_arsenal_experiment"
+    artifact_location: "experiments/mlruns"
+  
+  # What to track
+  track:
+    parameters: true
+    metrics: true
+    artifacts: true
+    model: true
+    code: true
+    
+  # Auto-logging
+  auto_logging:
+    enabled: true
+    frameworks: ["sklearn", "pytorch", "tensorflow"]
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: false
+    method: "api_key"  # api_key, oauth, jwt
+    
+  # Data encryption
+  encryption:
+    at_rest: false
+    in_transit: true
+    
+  # Access control
+  access_control:
+    enabled: false
+    roles: ["admin", "user", "viewer"]
+
+# Environment-specific settings
+environments:
+  development:
+    debug: true
+    log_level: "DEBUG"
+    auto_reload: true
+    
+  staging:
+    debug: false
+    log_level: "INFO"
+    monitoring_enabled: true
+    
+  production:
+    debug: false
+    log_level: "WARNING"
+    monitoring_enabled: true
+    security_enabled: true
+    performance_optimized: true
