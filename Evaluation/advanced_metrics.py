@@ -1,6 +1,7 @@
 """
 Advanced Evaluation Metrics for Machine Learning
 Comprehensive collection of evaluation metrics beyond standard sklearn offerings
+Enhanced with uncertainty quantification and fairness metrics
 """
 
 import numpy as np
@@ -9,6 +10,246 @@ import matplotlib.pyplot as plt
 from typing import List, Tuple, Dict, Optional
 from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve
 from sklearn.preprocessing import label_binarize
+
+
+class UncertaintyMetrics:
+    """Metrics for evaluating prediction uncertainty and calibration."""
+    
+    @staticmethod
+    def expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, 
+                                 n_bins: int = 10) -> float:
+        """
+        Calculate Expected Calibration Error (ECE).
+        
+        ECE measures the difference between accuracy and confidence.
+        Lower ECE indicates better calibration.
+        """
+        bin_boundaries = np.linspace(0, 1, n_bins + 1)
+        bin_lowers = bin_boundaries[:-1]
+        bin_uppers = bin_boundaries[1:]
+        
+        ece = 0
+        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+            # Find predictions in this bin
+            in_bin = (y_prob > bin_lower) & (y_prob <= bin_upper)
+            prop_in_bin = in_bin.mean()
+            
+            if prop_in_bin > 0:
+                accuracy_in_bin = y_true[in_bin].mean()
+                avg_confidence_in_bin = y_prob[in_bin].mean()
+                ece += np.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+        
+        return ece
+    
+    @staticmethod
+    def reliability_diagram(y_true: np.ndarray, y_prob: np.ndarray, 
+                          n_bins: int = 10) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Generate data for reliability diagram.
+        
+        Returns:
+            bin_centers: Center of each confidence bin
+            accuracies: Accuracy in each bin
+            confidences: Average confidence in each bin
+        """
+        bin_boundaries = np.linspace(0, 1, n_bins + 1)
+        bin_lowers = bin_boundaries[:-1]
+        bin_uppers = bin_boundaries[1:]
+        bin_centers = (bin_lowers + bin_uppers) / 2
+        
+        accuracies = []
+        confidences = []
+        
+        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+            in_bin = (y_prob > bin_lower) & (y_prob <= bin_upper)
+            
+            if in_bin.sum() > 0:
+                accuracy_in_bin = y_true[in_bin].mean()
+                avg_confidence_in_bin = y_prob[in_bin].mean()
+            else:
+                accuracy_in_bin = 0
+                avg_confidence_in_bin = 0
+            
+            accuracies.append(accuracy_in_bin)
+            confidences.append(avg_confidence_in_bin)
+        
+        return bin_centers, np.array(accuracies), np.array(confidences)
+    
+    @staticmethod
+    def brier_score(y_true: np.ndarray, y_prob: np.ndarray) -> float:
+        """
+        Calculate Brier Score for probability predictions.
+        
+        Brier Score measures the mean squared difference between
+        predicted probabilities and actual outcomes.
+        """
+        return np.mean((y_prob - y_true) ** 2)
+    
+    @staticmethod
+    def entropy_based_uncertainty(predictions: np.ndarray) -> np.ndarray:
+        """
+        Calculate entropy-based uncertainty for multi-class predictions.
+        
+        Args:
+            predictions: Array of shape (n_samples, n_classes) with probabilities
+        
+        Returns:
+            uncertainties: Array of uncertainties for each sample
+        """
+        # Avoid log(0) by adding small epsilon
+        epsilon = 1e-8
+        predictions = np.clip(predictions, epsilon, 1 - epsilon)
+        
+        # Calculate entropy
+        uncertainties = -np.sum(predictions * np.log(predictions), axis=1)
+        return uncertainties
+
+
+class FairnessMetrics:
+    """Metrics for evaluating algorithmic fairness."""
+    
+    @staticmethod
+    def demographic_parity_difference(y_true: np.ndarray, y_pred: np.ndarray, 
+                                    sensitive_features: np.ndarray) -> float:
+        """
+        Calculate demographic parity difference.
+        
+        Measures the difference in positive prediction rates between groups.
+        """
+        unique_groups = np.unique(sensitive_features)
+        
+        if len(unique_groups) != 2:
+            raise ValueError("Currently only supports binary sensitive features")
+        
+        group_0_mask = sensitive_features == unique_groups[0]
+        group_1_mask = sensitive_features == unique_groups[1]
+        
+        positive_rate_0 = y_pred[group_0_mask].mean()
+        positive_rate_1 = y_pred[group_1_mask].mean()
+        
+        return abs(positive_rate_1 - positive_rate_0)
+    
+    @staticmethod
+    def equalized_odds_difference(y_true: np.ndarray, y_pred: np.ndarray, 
+                                sensitive_features: np.ndarray) -> Dict[str, float]:
+        """
+        Calculate equalized odds difference.
+        
+        Measures the difference in TPR and FPR between groups.
+        """
+        unique_groups = np.unique(sensitive_features)
+        
+        if len(unique_groups) != 2:
+            raise ValueError("Currently only supports binary sensitive features")
+        
+        results = {}
+        
+        for outcome in [0, 1]:
+            outcome_mask = y_true == outcome
+            
+            group_0_mask = (sensitive_features == unique_groups[0]) & outcome_mask
+            group_1_mask = (sensitive_features == unique_groups[1]) & outcome_mask
+            
+            if group_0_mask.sum() > 0 and group_1_mask.sum() > 0:
+                rate_0 = y_pred[group_0_mask].mean()
+                rate_1 = y_pred[group_1_mask].mean()
+                
+                rate_name = "tpr_difference" if outcome == 1 else "fpr_difference"
+                results[rate_name] = abs(rate_1 - rate_0)
+            else:
+                rate_name = "tpr_difference" if outcome == 1 else "fpr_difference"
+                results[rate_name] = 0.0
+        
+        return results
+    
+    @staticmethod
+    def disparate_impact_ratio(y_pred: np.ndarray, sensitive_features: np.ndarray) -> float:
+        """
+        Calculate disparate impact ratio.
+        
+        Ratio of positive prediction rates between groups.
+        A ratio close to 1.0 indicates fairness.
+        """
+        unique_groups = np.unique(sensitive_features)
+        
+        if len(unique_groups) != 2:
+            raise ValueError("Currently only supports binary sensitive features")
+        
+        group_0_mask = sensitive_features == unique_groups[0]
+        group_1_mask = sensitive_features == unique_groups[1]
+        
+        positive_rate_0 = y_pred[group_0_mask].mean()
+        positive_rate_1 = y_pred[group_1_mask].mean()
+        
+        if positive_rate_0 == 0:
+            return float('inf') if positive_rate_1 > 0 else 1.0
+        
+        return positive_rate_1 / positive_rate_0
+
+
+class RobustnessMetrics:
+    """Metrics for evaluating model robustness and stability."""
+    
+    @staticmethod
+    def prediction_stability(model, X: np.ndarray, n_perturbations: int = 100, 
+                           noise_std: float = 0.01) -> float:
+        """
+        Measure prediction stability under small perturbations.
+        
+        Args:
+            model: Trained model with predict method
+            X: Input data
+            n_perturbations: Number of noise perturbations to apply
+            noise_std: Standard deviation of Gaussian noise
+        
+        Returns:
+            stability_score: Average agreement between original and perturbed predictions
+        """
+        original_predictions = model.predict(X)
+        agreements = []
+        
+        for _ in range(n_perturbations):
+            # Add Gaussian noise
+            noise = np.random.normal(0, noise_std, X.shape)
+            X_perturbed = X + noise
+            
+            perturbed_predictions = model.predict(X_perturbed)
+            agreement = (original_predictions == perturbed_predictions).mean()
+            agreements.append(agreement)
+        
+        return np.mean(agreements)
+    
+    @staticmethod
+    def adversarial_robustness_approx(model, X: np.ndarray, y: np.ndarray, 
+                                    epsilon: float = 0.1) -> float:
+        """
+        Approximate adversarial robustness using random perturbations.
+        
+        Args:
+            model: Trained model
+            X: Input data
+            y: True labels
+            epsilon: Maximum perturbation magnitude
+        
+        Returns:
+            robustness_score: Fraction of samples that maintain correct prediction
+        """
+        original_predictions = model.predict(X)
+        correct_mask = original_predictions == y
+        
+        if correct_mask.sum() == 0:
+            return 0.0
+        
+        # Generate random perturbations within epsilon ball
+        perturbations = np.random.uniform(-epsilon, epsilon, X.shape)
+        X_adversarial = np.clip(X + perturbations, 0, 1)  # Assume normalized inputs
+        
+        adversarial_predictions = model.predict(X_adversarial)
+        
+        # Check how many originally correct predictions remain correct
+        robust_predictions = (adversarial_predictions == y) & correct_mask
+        
+        return robust_predictions.sum() / correct_mask.sum()
 
 
 class AdvancedClassificationMetrics:
