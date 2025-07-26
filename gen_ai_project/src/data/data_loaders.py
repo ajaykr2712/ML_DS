@@ -1,13 +1,15 @@
 """
 Advanced data loading utilities for generative AI models.
 Provides efficient, scalable data loading with preprocessing and augmentation.
+Enhanced with streaming capabilities and memory optimization.
 """
 
 import warnings
-from typing import Dict, List, Optional, Callable, Any
+from typing import Dict, List, Optional, Callable, Any, Iterator, Union
+import pickle
 
 import torch
-from torch.utils.data import Dataset, DataLoader, DistributedSampler
+from torch.utils.data import Dataset, DataLoader, DistributedSampler, IterableDataset
 from torch.nn.utils.rnn import pad_sequence
 
 from tqdm import tqdm
@@ -26,6 +28,151 @@ except ImportError:
     TRANSFORMERS_AVAILABLE = False
     warnings.warn("transformers not available. Install with: pip install transformers")
 
+
+class MemoryEfficientDataset(IterableDataset):
+    """Memory-efficient dataset for large-scale training."""
+    
+    def __init__(self, data_source: Union[str, List], 
+                 transform: Optional[Callable] = None,
+                 chunk_size: int = 1000):
+        self.data_source = data_source
+        self.transform = transform
+        self.chunk_size = chunk_size
+        self.worker_id = None
+        self.num_workers = None
+    
+    def __iter__(self) -> Iterator[Any]:
+        """Iterate through data in chunks to optimize memory usage."""
+        worker_info = torch.utils.data.get_worker_info()
+        if worker_info is not None:
+            self.worker_id = worker_info.id
+            self.num_workers = worker_info.num_workers
+        
+        if isinstance(self.data_source, str):
+            # Stream from file
+            yield from self._stream_from_file()
+        else:
+            # Stream from list/iterable
+            yield from self._stream_from_iterable()
+    
+    def _stream_from_file(self) -> Iterator[Any]:
+        """Stream data from file source."""
+        with open(self.data_source, 'r') as f:
+            chunk = []
+            for line_idx, line in enumerate(f):
+                if self.num_workers and line_idx % self.num_workers != self.worker_id:
+                    continue
+                
+                data = line.strip()
+                if self.transform:
+                    data = self.transform(data)
+                
+                chunk.append(data)
+                if len(chunk) >= self.chunk_size:
+                    yield from chunk
+                    chunk = []
+            
+            # Yield remaining items
+            if chunk:
+                yield from chunk
+    
+    def _stream_from_iterable(self) -> Iterator[Any]:
+        """Stream data from iterable source."""
+        for idx, item in enumerate(self.data_source):
+            if self.num_workers and idx % self.num_workers != self.worker_id:
+                continue
+            
+            if self.transform:
+                item = self.transform(item)
+            yield item
+
+class AdaptiveBatchSampler:
+    """Adaptive batch sampler that adjusts batch size based on sequence length."""
+    
+    def __init__(self, dataset, max_tokens: int = 4096, 
+                 min_batch_size: int = 1, max_batch_size: int = 32):
+        self.dataset = dataset
+        self.max_tokens = max_tokens
+        self.min_batch_size = min_batch_size
+        self.max_batch_size = max_batch_size
+        
+    def __iter__(self):
+        """Generate adaptive batches based on token count."""
+        batch = []
+        current_tokens = 0
+        
+        for idx, item in enumerate(self.dataset):
+            # Estimate token count
+            if hasattr(item, '__len__'):
+                item_tokens = len(item)
+            elif isinstance(item, dict) and 'input_ids' in item:
+                item_tokens = len(item['input_ids'])
+            else:
+                item_tokens = 512  # Default assumption
+            
+            # Check if adding this item exceeds limits
+            if (current_tokens + item_tokens > self.max_tokens and batch) or \
+               len(batch) >= self.max_batch_size:
+                if len(batch) >= self.min_batch_size:
+                    yield batch
+                batch = []
+                current_tokens = 0
+            
+            batch.append(idx)
+            current_tokens += item_tokens
+        
+        # Yield final batch
+        if batch and len(batch) >= self.min_batch_size:
+            yield batch
+
+class CacheManager:
+    """Intelligent caching for preprocessed data."""
+    
+    def __init__(self, cache_dir: str = "./cache", max_cache_size: int = 1000):
+        self.cache_dir = cache_dir
+        self.max_cache_size = max_cache_size
+        self.cache = {}
+        self.access_count = {}
+        
+        import os
+        os.makedirs(cache_dir, exist_ok=True)
+    
+    def get(self, key: str) -> Optional[Any]:
+        """Get cached item."""
+        if key in self.cache:
+            self.access_count[key] = self.access_count.get(key, 0) + 1
+            return self.cache[key]
+        
+        # Try loading from disk
+        cache_file = f"{self.cache_dir}/{hash(key)}.pkl"
+        try:
+            with open(cache_file, 'rb') as f:
+                data = pickle.load(f)
+                self._add_to_memory_cache(key, data)
+                return data
+        except FileNotFoundError:
+            return None
+    
+    def put(self, key: str, value: Any) -> None:
+        """Cache item both in memory and on disk."""
+        # Save to disk
+        cache_file = f"{self.cache_dir}/{hash(key)}.pkl"
+        with open(cache_file, 'wb') as f:
+            pickle.dump(value, f)
+        
+        # Add to memory cache
+        self._add_to_memory_cache(key, value)
+    
+    def _add_to_memory_cache(self, key: str, value: Any) -> None:
+        """Add item to memory cache with LRU eviction."""
+        if len(self.cache) >= self.max_cache_size:
+            # Remove least recently used item
+            lru_key = min(self.access_count.keys(), key=self.access_count.get)
+            del self.cache[lru_key]
+            del self.access_count[lru_key]
+        
+        self.cache[key] = value
+        self.access_count[key] = self.access_count.get(key, 0) + 1
 
 class TextDataset(Dataset):
     """Dataset for text generation tasks."""
