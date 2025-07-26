@@ -1,15 +1,17 @@
 """
 Comprehensive evaluation utilities for generative AI models.
 Includes metrics for text generation, image generation, and model performance.
+Enhanced with multimodal evaluation and uncertainty quantification.
 """
 
 import json
 import logging
 import warnings
 import time
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, List, Any, Tuple, Optional, Union
 from pathlib import Path
 from collections import defaultdict
+import scipy.stats as stats
 
 import numpy as np
 import torch
@@ -18,6 +20,16 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizer
 from tqdm.auto import tqdm
+
+# Advanced evaluation imports
+try:
+    from sklearn.metrics import mutual_info_score, normalized_mutual_info_score
+    from sklearn.decomposition import PCA
+    from sklearn.manifold import TSNE
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    warnings.warn("scikit-learn not available. Install for advanced metrics.")
 
 # Text evaluation metrics
 try:
@@ -656,6 +668,82 @@ class EvaluationReporter:
         return str(report_path)
 
 
+class UncertaintyQuantifier:
+    """Quantify model uncertainty using various methods."""
+    
+    def __init__(self, n_samples: int = 100):
+        self.n_samples = n_samples
+    
+    def monte_carlo_dropout(self, model: nn.Module, inputs: torch.Tensor) -> Dict[str, float]:
+        """Estimate uncertainty using Monte Carlo dropout."""
+        model.train()  # Enable dropout
+        predictions = []
+        
+        with torch.no_grad():
+            for _ in range(self.n_samples):
+                pred = model(inputs)
+                predictions.append(pred.cpu().numpy())
+        
+        predictions = np.array(predictions)
+        mean_pred = np.mean(predictions, axis=0)
+        std_pred = np.std(predictions, axis=0)
+        
+        return {
+            'mean_prediction': mean_pred,
+            'uncertainty': std_pred,
+            'epistemic_uncertainty': np.mean(std_pred),
+            'predictive_entropy': self._compute_entropy(predictions)
+        }
+    
+    def _compute_entropy(self, predictions: np.ndarray) -> float:
+        """Compute predictive entropy."""
+        mean_pred = np.mean(predictions, axis=0)
+        # Assuming softmax predictions
+        entropy = -np.sum(mean_pred * np.log(mean_pred + 1e-8), axis=-1)
+        return np.mean(entropy)
+
+
+class MultimodalEvaluator:
+    """Evaluation for multimodal models combining text, image, and audio."""
+    
+    def __init__(self):
+        self.modality_weights = {'text': 0.4, 'image': 0.4, 'audio': 0.2}
+    
+    def cross_modal_alignment(self, text_features: torch.Tensor, 
+                            image_features: torch.Tensor) -> Dict[str, float]:
+        """Evaluate alignment between text and image representations."""
+        # Normalize features
+        text_norm = F.normalize(text_features, dim=-1)
+        image_norm = F.normalize(image_features, dim=-1)
+        
+        # Compute similarity matrix
+        similarity_matrix = torch.matmul(text_norm, image_norm.T)
+        
+        # Calculate retrieval metrics
+        text_to_image_acc = self._retrieval_accuracy(similarity_matrix, k=5)
+        image_to_text_acc = self._retrieval_accuracy(similarity_matrix.T, k=5)
+        
+        return {
+            'text_to_image_recall@5': text_to_image_acc,
+            'image_to_text_recall@5': image_to_text_acc,
+            'mean_similarity': torch.mean(torch.diag(similarity_matrix)).item(),
+            'alignment_score': (text_to_image_acc + image_to_text_acc) / 2
+        }
+    
+    def _retrieval_accuracy(self, similarity_matrix: torch.Tensor, k: int = 5) -> float:
+        """Calculate top-k retrieval accuracy."""
+        batch_size = similarity_matrix.size(0)
+        correct_retrievals = 0
+        
+        for i in range(batch_size):
+            # Get top-k indices
+            _, top_k_indices = torch.topk(similarity_matrix[i], k)
+            if i in top_k_indices:
+                correct_retrievals += 1
+        
+        return correct_retrievals / batch_size
+
+
 # Example usage and testing
 if __name__ == "__main__":
     # Setup logging
@@ -667,6 +755,8 @@ if __name__ == "__main__":
     print("- TextGenerationEvaluator: For evaluating text generation quality")
     print("- ModelPerformanceEvaluator: For benchmarking model performance")
     print("- EvaluationReporter: For generating comprehensive reports")
+    print("- UncertaintyQuantifier: For quantifying model uncertainty")
+    print("- MultimodalEvaluator: For evaluating multimodal model performance")
     
     # Check availability of optional dependencies
     print("\nOptional dependencies:")
@@ -674,3 +764,4 @@ if __name__ == "__main__":
     print(f"- BLEU scorer: {BLEU_AVAILABLE}")
     print(f"- BERTScore: {BERT_SCORE_AVAILABLE}")
     print(f"- SciPy: {SCIPY_AVAILABLE}")
+    print(f"- scikit-learn: {SKLEARN_AVAILABLE}")
