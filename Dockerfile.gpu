@@ -1,0 +1,120 @@
+# ML Arsenal - GPU-Enabled Dockerfile
+# ====================================
+# Optimized for NVIDIA GPU environments with CUDA support
+
+# Build arguments
+ARG CUDA_VERSION=11.8
+ARG CUDNN_VERSION=8
+ARG UBUNTU_VERSION=20.04
+
+# Base image with CUDA runtime
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# CUDA and GPU related environment variables
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=${CUDA_HOME}/bin:${PATH}
+ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.9 \
+    python3.9-dev \
+    python3.9-distutils \
+    python3-pip \
+    build-essential \
+    gcc \
+    g++ \
+    libc6-dev \
+    libffi-dev \
+    libssl-dev \
+    libcudnn8-dev \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symbolic links for python
+RUN ln -s /usr/bin/python3.9 /usr/bin/python && \
+    ln -s /usr/bin/pip3 /usr/bin/pip
+
+# Upgrade pip
+RUN pip install --upgrade pip setuptools wheel
+
+# Create non-root user
+RUN groupadd -r ml_user && useradd -r -g ml_user ml_user
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt requirements-gpu.txt ./
+
+# Install PyTorch with CUDA support
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# Install other ML dependencies
+RUN pip install -r requirements.txt && \
+    pip install -r requirements-gpu.txt
+
+# Copy application code
+COPY src/ ./src/
+COPY configs/ ./configs/
+COPY scripts/ ./scripts/
+COPY setup.py .
+COPY README.md .
+COPY LICENSE .
+
+# Install the application
+RUN pip install -e .
+
+# Create necessary directories
+RUN mkdir -p \
+    data/samples \
+    models/production \
+    logs \
+    experiments \
+    reports \
+    && chown -R ml_user:ml_user /app
+
+# Copy GPU-specific entrypoint
+COPY docker/entrypoint-gpu.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && chown ml_user:ml_user /entrypoint.sh
+
+# Switch to non-root user
+USER ml_user
+
+# GPU health check
+HEALTHCHECK --interval=60s --timeout=30s --start-period=10s --retries=3 \
+    CMD python -c "import torch; assert torch.cuda.is_available()" && \
+        curl -f http://localhost:8080/health || exit 1
+
+# Expose port
+EXPOSE 8080
+
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Default command for GPU serving
+CMD ["serve", "--host", "0.0.0.0", "--port", "8080", "--device", "cuda"]
+
+# Build information
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+
+LABEL maintainer="ML Arsenal Team" \
+      org.opencontainers.image.title="ML Arsenal GPU" \
+      org.opencontainers.image.description="GPU-enabled machine learning platform" \
+      org.opencontainers.image.version=${VERSION} \
+      org.opencontainers.image.created=${BUILD_DATE} \
+      org.opencontainers.image.revision=${VCS_REF} \
+      org.opencontainers.image.vendor="ML Arsenal" \
+      org.opencontainers.image.licenses="MIT"
