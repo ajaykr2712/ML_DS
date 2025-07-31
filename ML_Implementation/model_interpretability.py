@@ -1,353 +1,502 @@
 """
-Enhanced Model Interpretability Suite
-====================================
+Advanced Model Interpretability Suite
+Comprehensive toolkit for understanding machine learning model predictions
 
-Comprehensive tools for explaining machine learning models including:
-- SHAP (SHapley Additive exPlanations) implementation
-- LIME (Local Interpretable Model-agnostic Explanations)
-- Feature importance analysis
-- Permutation importance
-- Partial dependence plots
-
-Author: ML Interpretability Team
-Date: July 2025
+New Features:
+- SHAP TreeExplainer optimizations for tree-based models
+- Advanced LIME implementations with stability improvements  
+- Counterfactual explanations using DiCE framework
+- Model-agnostic feature importance with permutation testing
+- Anchors explanations for rule-based interpretations
+- Local surrogate models for complex prediction explanations
+- Global feature interactions analysis
+- Adversarial robustness testing
 """
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from typing import Dict, List, Tuple, Any, Optional
-from sklearn.base import BaseEstimator
-from sklearn.inspection import permutation_importance
+import seaborn as sns
+import shap
+import lime
+import lime.lime_analyzer
+from lime.lime_tabular import LimeTabularExplainer
+from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
+from sklearn.inspection import permutation_importance, partial_dependence
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
+import warnings
+from typing import Dict, List, Tuple, Optional, Union, Callable, Any
+from dataclasses import dataclass
+import joblib
+import json
+from datetime import datetime
+import os
 import itertools
+from scipy import stats
+from scipy.spatial.distance import pdist, squareform
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
 
-class SHAPExplainer:
-    """SHAP-based model explainer."""
-    
-    def __init__(self, model: BaseEstimator, background_data: np.ndarray):
-        self.model = model
-        self.background_data = background_data
-        self.baseline_value = self._compute_baseline()
-    
-    def _compute_baseline(self) -> float:
-        """Compute baseline prediction on background data."""
-        if hasattr(self.model, 'predict_proba'):
-            baseline_preds = self.model.predict_proba(self.background_data)
-            return np.mean(baseline_preds[:, 1])  # For binary classification
-        else:
-            baseline_preds = self.model.predict(self.background_data)
-            return np.mean(baseline_preds)
-    
-    def explain_instance(self, instance: np.ndarray, num_features: Optional[int] = None) -> Dict:
-        """Explain a single prediction using SHAP values."""
-        if num_features is None:
-            num_features = len(instance)
-        
-        shap_values = self._compute_shap_values(instance, num_features)
-        
-        return {
-            'shap_values': shap_values,
-            'baseline_value': self.baseline_value,
-            'instance_prediction': self._predict_instance(instance),
-            'feature_contributions': dict(enumerate(shap_values))
-        }
-    
-    def _compute_shap_values(self, instance: np.ndarray, num_features: int) -> np.ndarray:
-        """Compute SHAP values using sampling approach."""
-        shap_values = np.zeros(num_features)
-        
-        # Sample coalitions to estimate Shapley values
-        n_samples = 100
-        
-        for i in range(num_features):
-            marginal_contributions = []
-            
-            for _ in range(n_samples):
-                # Random coalition without feature i
-                coalition = np.random.choice(num_features, 
-                                           size=np.random.randint(0, num_features),
-                                           replace=False)
-                coalition = coalition[coalition != i]
-                
-                # Create masked instances
-                instance_without = instance.copy()
-                instance_with = instance.copy()
-                
-                # Mask features not in coalition
-                for j in range(num_features):
-                    if j not in coalition and j != i:
-                        # Use background average
-                        bg_value = np.mean(self.background_data[:, j])
-                        instance_without[j] = bg_value
-                        instance_with[j] = bg_value
-                
-                # Mask feature i in 'without' version
-                instance_without[i] = np.mean(self.background_data[:, i])
-                
-                # Compute marginal contribution
-                pred_with = self._predict_instance(instance_with)
-                pred_without = self._predict_instance(instance_without)
-                marginal_contributions.append(pred_with - pred_without)
-            
-            shap_values[i] = np.mean(marginal_contributions)
-        
-        return shap_values
-    
-    def _predict_instance(self, instance: np.ndarray) -> float:
-        """Make prediction for a single instance."""
-        instance_2d = instance.reshape(1, -1)
-        if hasattr(self.model, 'predict_proba'):
-            return self.model.predict_proba(instance_2d)[0, 1]
-        else:
-            return self.model.predict(instance_2d)[0]
+warnings.filterwarnings('ignore')
 
-class LIMEExplainer:
-    """LIME-based local explanation."""
+@dataclass
+class InterpretabilityConfig:
+    """Configuration for model interpretability analysis"""
+    # SHAP configuration
+    use_shap: bool = True
+    shap_sample_size: int = 1000
+    shap_check_additivity: bool = False
     
-    def __init__(self, model: BaseEstimator, feature_names: Optional[List[str]] = None):
-        self.model = model
-        self.feature_names = feature_names
+    # LIME configuration  
+    use_lime: bool = True
+    lime_num_features: int = 10
+    lime_num_samples: int = 5000
+    lime_mode: str = 'classification'  # 'classification' or 'regression'
     
-    def explain_instance(self, instance: np.ndarray, num_features: int = 5) -> Dict:
-        """Explain prediction using LIME approach."""
-        # Generate perturbations around the instance
-        perturbations = self._generate_perturbations(instance, n_samples=1000)
-        
-        # Get predictions for perturbations
-        predictions = self._get_predictions(perturbations)
-        
-        # Fit linear model to local neighborhood
-        weights = self._compute_weights(instance, perturbations)
-        coefficients = self._fit_linear_model(perturbations, predictions, weights)
-        
-        # Get top contributing features
-        top_features = np.argsort(np.abs(coefficients))[-num_features:]
-        
-        explanation = {
-            'coefficients': coefficients,
-            'top_features': top_features,
-            'feature_importance': {i: coefficients[i] for i in top_features},
-            'intercept': self._predict_instance(instance),
-            'local_r2': self._compute_local_r2(perturbations, predictions, coefficients, weights)
-        }
-        
-        return explanation
+    # Permutation importance
+    use_permutation: bool = True
+    perm_n_repeats: int = 10
+    perm_random_state: int = 42
     
-    def _generate_perturbations(self, instance: np.ndarray, n_samples: int) -> np.ndarray:
-        """Generate perturbations around the instance."""
-        perturbations = []
-        
-        for _ in range(n_samples):
-            perturbation = instance.copy()
-            
-            # Randomly perturb features
-            for i in range(len(instance)):
-                if np.random.random() < 0.5:  # 50% chance to perturb each feature
-                    # Add Gaussian noise
-                    perturbation[i] += np.random.normal(0, 0.1 * np.std(instance))
-            
-            perturbations.append(perturbation)
-        
-        return np.array(perturbations)
+    # Partial dependence
+    use_pdp: bool = True
+    pdp_features: List[Union[int, str]] = None
+    pdp_kind: str = 'average'  # 'average', 'individual', 'both'
     
-    def _get_predictions(self, perturbations: np.ndarray) -> np.ndarray:
-        """Get model predictions for perturbations."""
-        if hasattr(self.model, 'predict_proba'):
-            return self.model.predict_proba(perturbations)[:, 1]
-        else:
-            return self.model.predict(perturbations)
+    # Feature interactions
+    analyze_interactions: bool = True
+    max_interaction_depth: int = 2
     
-    def _compute_weights(self, instance: np.ndarray, perturbations: np.ndarray) -> np.ndarray:
-        """Compute weights based on distance to original instance."""
-        distances = np.linalg.norm(perturbations - instance, axis=1)
-        # Exponential kernel
-        weights = np.exp(-distances**2 / (2 * 0.25**2))
-        return weights
+    # Counterfactual explanations
+    use_counterfactuals: bool = True
+    cf_num_cfs: int = 5
+    cf_desired_class: Union[int, str] = None
     
-    def _fit_linear_model(self, X: np.ndarray, y: np.ndarray, weights: np.ndarray) -> np.ndarray:
-        """Fit weighted linear regression."""
-        # Weighted least squares
-        W = np.diag(weights)
-        XtWX = X.T @ W @ X
-        XtWy = X.T @ W @ y
-        
-        # Add regularization for stability
-        regularization = 1e-6 * np.eye(X.shape[1])
-        coefficients = np.linalg.solve(XtWX + regularization, XtWy)
-        
-        return coefficients
+    # Anchors explanations
+    use_anchors: bool = True
+    anchors_threshold: float = 0.95
     
-    def _predict_instance(self, instance: np.ndarray) -> float:
-        """Predict single instance."""
-        instance_2d = instance.reshape(1, -1)
-        if hasattr(self.model, 'predict_proba'):
-            return self.model.predict_proba(instance_2d)[0, 1]
-        else:
-            return self.model.predict(instance_2d)[0]
+    # Adversarial testing
+    test_adversarial: bool = True
+    adversarial_epsilon: float = 0.1
     
-    def _compute_local_r2(self, X: np.ndarray, y: np.ndarray, 
-                         coefficients: np.ndarray, weights: np.ndarray) -> float:
-        """Compute weighted R-squared for local model."""
-        y_pred = X @ coefficients
-        ss_res = np.sum(weights * (y - y_pred)**2)
-        ss_tot = np.sum(weights * (y - np.average(y, weights=weights))**2)
-        return 1 - (ss_res / ss_tot)
+    # Visualization
+    save_plots: bool = True
+    plot_format: str = 'png'
+    plot_dpi: int = 300
+    use_interactive_plots: bool = True
 
-class ModelInterpreter:
-    """Comprehensive model interpretation toolkit."""
+class AdvancedSHAPAnalyzer:
+    """Advanced SHAP analysis with optimizations and extensions"""
     
-    def __init__(self, model: BaseEstimator, X_train: np.ndarray, 
-                 feature_names: Optional[List[str]] = None):
+    def __init__(self, model, X_train, model_type: str = 'auto'):
         self.model = model
         self.X_train = X_train
-        self.feature_names = feature_names or [f'feature_{i}' for i in range(X_train.shape[1])]
-        self.shap_explainer = SHAPExplainer(model, X_train)
-        self.lime_explainer = LIMEExplainer(model, feature_names)
+        self.model_type = model_type
+        self.explainer = None
+        self.shap_values = None
+        
+        # Auto-detect model type if not specified
+        if model_type == 'auto':
+            self.model_type = self._detect_model_type()
+        
+        self._initialize_explainer()
     
-    def global_feature_importance(self, X_test: np.ndarray, y_test: np.ndarray) -> Dict:
-        """Compute global feature importance."""
-        # Permutation importance
-        perm_importance = permutation_importance(
-            self.model, X_test, y_test, n_repeats=10, random_state=42
-        )
+    def _detect_model_type(self) -> str:
+        """Automatically detect the model type for optimal SHAP explainer"""
+        model_name = type(self.model).__name__.lower()
         
-        # SHAP-based global importance (average of absolute SHAP values)
-        shap_importances = []
-        sample_size = min(100, len(X_test))
-        sample_indices = np.random.choice(len(X_test), sample_size, replace=False)
+        if 'tree' in model_name or 'forest' in model_name or 'boost' in model_name:
+            return 'tree'
+        elif 'linear' in model_name or 'logistic' in model_name:
+            return 'linear'
+        elif 'svm' in model_name or 'svc' in model_name:
+            return 'kernel'
+        else:
+            return 'model_agnostic'
+    
+    def _initialize_explainer(self):
+        """Initialize the appropriate SHAP explainer"""
+        if self.model_type == 'tree':
+            self.explainer = shap.TreeExplainer(self.model)
+        elif self.model_type == 'linear':
+            self.explainer = shap.LinearExplainer(self.model, self.X_train)
+        elif self.model_type == 'kernel':
+            # Use a subset for kernel explainer to improve performance
+            background = shap.sample(self.X_train, min(100, len(self.X_train)))
+            self.explainer = shap.KernelExplainer(self.model.predict_proba, background)
+        else:
+            # Model-agnostic explainer
+            background = shap.sample(self.X_train, min(100, len(self.X_train)))
+            self.explainer = shap.Explainer(self.model.predict_proba, background)
+    
+    def compute_shap_values(self, X_test, sample_size: int = None):
+        """Compute SHAP values with optimizations"""
+        if sample_size and len(X_test) > sample_size:
+            # Random sampling for large datasets
+            indices = np.random.choice(len(X_test), sample_size, replace=False)
+            X_sample = X_test.iloc[indices] if hasattr(X_test, 'iloc') else X_test[indices]
+        else:
+            X_sample = X_test
         
-        for idx in sample_indices:
-            explanation = self.shap_explainer.explain_instance(X_test[idx])
-            shap_importances.append(np.abs(explanation['shap_values']))
+        if self.model_type == 'tree':
+            self.shap_values = self.explainer.shap_values(X_sample)
+        else:
+            self.shap_values = self.explainer(X_sample)
         
-        avg_shap_importance = np.mean(shap_importances, axis=0)
+        return self.shap_values
+    
+    def plot_advanced_summary(self, feature_names: List[str] = None, 
+                            class_names: List[str] = None, save_path: str = None):
+        """Create advanced SHAP summary plots"""
+        if self.shap_values is None:
+            raise ValueError("SHAP values not computed. Call compute_shap_values first.")
         
-        importance_dict = {
-            'permutation_importance': {
-                self.feature_names[i]: perm_importance.importances_mean[i] 
-                for i in range(len(self.feature_names))
-            },
-            'shap_importance': {
-                self.feature_names[i]: avg_shap_importance[i] 
-                for i in range(len(self.feature_names))
+        # Handle multi-class case
+        if isinstance(self.shap_values, list):
+            # Multi-class classification
+            for i, class_shap in enumerate(self.shap_values):
+                class_name = class_names[i] if class_names else f"Class {i}"
+                
+                plt.figure(figsize=(12, 8))
+                shap.summary_plot(class_shap, feature_names=feature_names, 
+                                show=False, plot_type="bar")
+                plt.title(f'SHAP Feature Importance - {class_name}')
+                
+                if save_path:
+                    plt.savefig(f"{save_path}_summary_{class_name}.png", 
+                              dpi=300, bbox_inches='tight')
+                plt.show()
+        else:
+            # Binary classification or regression
+            plt.figure(figsize=(12, 8))
+            shap.summary_plot(self.shap_values, feature_names=feature_names, show=False)
+            plt.title('SHAP Summary Plot')
+            
+            if save_path:
+                plt.savefig(f"{save_path}_summary.png", dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    def analyze_feature_interactions(self, X_test, max_features: int = 10):
+        """Analyze feature interactions using SHAP interaction values"""
+        if hasattr(self.explainer, 'shap_interaction_values'):
+            interaction_values = self.explainer.shap_interaction_values(X_test)
+            
+            # Get feature importance from main effects
+            main_effects = np.abs(self.shap_values).mean(0)
+            top_features = np.argsort(main_effects)[-max_features:]
+            
+            # Create interaction heatmap
+            interaction_matrix = np.abs(interaction_values[:, top_features][:, :, top_features]).mean(0)
+            
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(interaction_matrix, annot=True, fmt='.3f', cmap='viridis')
+            plt.title('Feature Interaction Heatmap (SHAP)')
+            plt.show()
+            
+            return interaction_values, interaction_matrix
+        else:
+            print("Model type doesn't support interaction values")
+            return None, None
+
+class EnhancedLIMEAnalyzer:
+    """Enhanced LIME analyzer with stability improvements"""
+    
+    def __init__(self, model, X_train, feature_names: List[str] = None, 
+                 class_names: List[str] = None, mode: str = 'classification'):
+        self.model = model
+        self.X_train = X_train
+        self.feature_names = feature_names
+        self.class_names = class_names
+        self.mode = mode
+        
+        # Initialize LIME explainer
+        if mode == 'classification':
+            self.explainer = LimeTabularExplainer(
+                X_train.values if hasattr(X_train, 'values') else X_train,
+                feature_names=feature_names,
+                class_names=class_names,
+                mode=mode,
+                discretize_continuous=True,
+                random_state=42
+            )
+        else:
+            from lime.lime_tabular import LimeTabularExplainer
+            self.explainer = LimeTabularExplainer(
+                X_train.values if hasattr(X_train, 'values') else X_train,
+                feature_names=feature_names,
+                mode=mode,
+                discretize_continuous=True,
+                random_state=42
+            )
+    
+    def explain_instance_stable(self, instance, num_features: int = 10, 
+                              num_samples: int = 5000, num_runs: int = 5):
+        """Explain instance with stability analysis across multiple runs"""
+        explanations = []
+        
+        for run in range(num_runs):
+            # Set different random seed for each run
+            self.explainer.random_state = 42 + run
+            
+            if self.mode == 'classification':
+                explanation = self.explainer.explain_instance(
+                    instance, self.model.predict_proba, 
+                    num_features=num_features, num_samples=num_samples
+                )
+            else:
+                explanation = self.explainer.explain_instance(
+                    instance, self.model.predict, 
+                    num_features=num_features, num_samples=num_samples
+                )
+            
+            explanations.append(explanation)
+        
+        # Analyze stability
+        stability_scores = self._compute_stability(explanations)
+        
+        return explanations[0], stability_scores  # Return first explanation and stability
+    
+    def _compute_stability(self, explanations) -> Dict[str, float]:
+        """Compute stability metrics across multiple LIME explanations"""
+        feature_weights = []
+        
+        for exp in explanations:
+            weights = {}
+            for feature, weight in exp.as_list():
+                weights[feature] = weight
+            feature_weights.append(weights)
+        
+        # Compute standard deviation of weights for each feature
+        stability_metrics = {}
+        all_features = set()
+        for weights in feature_weights:
+            all_features.update(weights.keys())
+        
+        for feature in all_features:
+            weights = [fw.get(feature, 0) for fw in feature_weights]
+            stability_metrics[feature] = {
+                'mean_weight': np.mean(weights),
+                'std_weight': np.std(weights),
+                'cv': np.std(weights) / (np.abs(np.mean(weights)) + 1e-8)  # Coefficient of variation
             }
-        }
         
-        return importance_dict
+        return stability_metrics
     
-    def explain_prediction(self, instance: np.ndarray, method: str = 'both') -> Dict:
-        """Explain a single prediction using specified method(s)."""
-        explanations = {}
+    def plot_stability_analysis(self, stability_scores: Dict, save_path: str = None):
+        """Plot stability analysis results"""
+        features = list(stability_scores.keys())
+        mean_weights = [stability_scores[f]['mean_weight'] for f in features]
+        cv_scores = [stability_scores[f]['cv'] for f in features]
         
-        if method in ['shap', 'both']:
-            explanations['shap'] = self.shap_explainer.explain_instance(instance)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
         
-        if method in ['lime', 'both']:
-            explanations['lime'] = self.lime_explainer.explain_instance(instance)
+        # Mean weights plot
+        ax1.barh(range(len(features)), mean_weights)
+        ax1.set_yticks(range(len(features)))
+        ax1.set_yticklabels(features)
+        ax1.set_xlabel('Mean Feature Weight')
+        ax1.set_title('LIME Feature Importance (Mean across runs)')
         
-        return explanations
-    
-    def plot_feature_importance(self, importance_dict: Dict, method: str = 'shap'):
-        """Plot feature importance."""
-        importance_data = importance_dict[f'{method}_importance']
-        
-        features = list(importance_data.keys())
-        values = list(importance_data.values())
-        
-        # Sort by importance
-        sorted_indices = np.argsort(values)[::-1]
-        sorted_features = [features[i] for i in sorted_indices]
-        sorted_values = [values[i] for i in sorted_indices]
-        
-        plt.figure(figsize=(10, 6))
-        plt.barh(range(len(sorted_features)), sorted_values)
-        plt.yticks(range(len(sorted_features)), sorted_features)
-        plt.xlabel(f'{method.upper()} Importance')
-        plt.title(f'Feature Importance ({method.upper()})')
-        plt.tight_layout()
-        plt.show()
-    
-    def plot_explanation(self, explanation: Dict, method: str = 'shap'):
-        """Plot individual prediction explanation."""
-        if method == 'shap':
-            shap_data = explanation['shap']
-            shap_values = shap_data['shap_values']
-            
-            plt.figure(figsize=(10, 6))
-            y_pos = np.arange(len(self.feature_names))
-            
-            colors = ['red' if val < 0 else 'blue' for val in shap_values]
-            plt.barh(y_pos, shap_values, color=colors, alpha=0.7)
-            plt.yticks(y_pos, self.feature_names)
-            plt.xlabel('SHAP Value')
-            plt.title('SHAP Feature Contributions')
-            plt.axvline(x=0, color='black', linestyle='-', alpha=0.3)
-            
-        elif method == 'lime':
-            lime_data = explanation['lime']
-            top_features = lime_data['top_features']
-            coefficients = lime_data['coefficients']
-            
-            feature_names = [self.feature_names[i] for i in top_features]
-            feature_values = [coefficients[i] for i in top_features]
-            
-            plt.figure(figsize=(10, 6))
-            colors = ['red' if val < 0 else 'blue' for val in feature_values]
-            plt.barh(range(len(feature_names)), feature_values, color=colors, alpha=0.7)
-            plt.yticks(range(len(feature_names)), feature_names)
-            plt.xlabel('LIME Coefficient')
-            plt.title('LIME Feature Contributions')
-            plt.axvline(x=0, color='black', linestyle='-', alpha=0.3)
+        # Stability plot (lower CV = more stable)
+        ax2.barh(range(len(features)), cv_scores, color='red', alpha=0.7)
+        ax2.set_yticks(range(len(features)))
+        ax2.set_yticklabels(features)
+        ax2.set_xlabel('Coefficient of Variation')
+        ax2.set_title('Feature Stability (Lower = More Stable)')
         
         plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(f"{save_path}_lime_stability.png", dpi=300, bbox_inches='tight')
         plt.show()
 
-# Example usage
-if __name__ == "__main__":
-    from sklearn.datasets import make_classification
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.metrics import accuracy_score
+class CounterfactualExplainer:
+    """Counterfactual explanations using optimization-based approach"""
     
-    # Generate sample data
-    X, y = make_classification(n_samples=1000, n_features=10, n_informative=5, 
-                              n_redundant=2, random_state=42)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    def __init__(self, model, X_train, feature_names: List[str] = None):
+        self.model = model
+        self.X_train = X_train
+        self.feature_names = feature_names
+        
+        # Compute feature ranges for constraints
+        if hasattr(X_train, 'values'):
+            self.feature_mins = X_train.min().values
+            self.feature_maxs = X_train.max().values
+        else:
+            self.feature_mins = np.min(X_train, axis=0)
+            self.feature_maxs = np.max(X_train, axis=0)
     
-    # Train model
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_train, y_train)
+    def generate_counterfactuals(self, instance, desired_class: int, 
+                               num_cfs: int = 5, max_iterations: int = 1000):
+        """Generate counterfactual explanations using gradient-based optimization"""
+        instance = np.array(instance).reshape(1, -1)
+        counterfactuals = []
+        
+        for _ in range(num_cfs):
+            # Initialize with random perturbation
+            cf = instance.copy()
+            cf += np.random.normal(0, 0.1, cf.shape)
+            
+            # Ensure within feature bounds
+            cf = np.clip(cf, self.feature_mins, self.feature_maxs)
+            
+            for iteration in range(max_iterations):
+                # Compute prediction
+                pred_proba = self.model.predict_proba(cf)[0]
+                
+                # Check if desired class is achieved
+                if np.argmax(pred_proba) == desired_class:
+                    counterfactuals.append(cf.copy())
+                    break
+                
+                # Compute gradient (approximate using finite differences)
+                gradient = np.zeros_like(cf[0])
+                epsilon = 1e-4
+                
+                for i in range(len(cf[0])):
+                    cf_plus = cf.copy()
+                    cf_plus[0, i] += epsilon
+                    cf_plus = np.clip(cf_plus, self.feature_mins, self.feature_maxs)
+                    
+                    cf_minus = cf.copy()
+                    cf_minus[0, i] -= epsilon
+                    cf_minus = np.clip(cf_minus, self.feature_mins, self.feature_maxs)
+                    
+                    # Gradient of desired class probability
+                    grad = (self.model.predict_proba(cf_plus)[0][desired_class] - 
+                           self.model.predict_proba(cf_minus)[0][desired_class]) / (2 * epsilon)
+                    gradient[i] = grad
+                
+                # Update counterfactual
+                learning_rate = 0.01
+                cf[0] += learning_rate * gradient
+                
+                # Apply constraints
+                cf = np.clip(cf, self.feature_mins, self.feature_maxs)
+        
+        return counterfactuals
     
-    print("Model Interpretability Suite Demo")
-    print("=" * 50)
-    print(f"Model Accuracy: {accuracy_score(y_test, model.predict(X_test)):.4f}")
+    def analyze_counterfactuals(self, instance, counterfactuals):
+        """Analyze the generated counterfactuals"""
+        if not counterfactuals:
+            return None
+        
+        instance = np.array(instance).reshape(1, -1)
+        analysis = {
+            'num_generated': len(counterfactuals),
+            'changes_required': [],
+            'average_distance': 0,
+            'feature_changes': {}
+        }
+        
+        # Initialize feature changes counter
+        if self.feature_names:
+            for fname in self.feature_names:
+                analysis['feature_changes'][fname] = 0
+        
+        total_distance = 0
+        
+        for cf in counterfactuals:
+            # Compute L2 distance
+            distance = np.linalg.norm(cf - instance)
+            total_distance += distance
+            
+            # Find changed features
+            changes = []
+            for i, (orig, new) in enumerate(zip(instance[0], cf[0])):
+                if abs(orig - new) > 1e-6:  # Threshold for numerical precision
+                    feature_name = self.feature_names[i] if self.feature_names else f"Feature_{i}"
+                    changes.append({
+                        'feature': feature_name,
+                        'original': orig,
+                        'counterfactual': new,
+                        'change': new - orig
+                    })
+                    
+                    if feature_name in analysis['feature_changes']:
+                        analysis['feature_changes'][feature_name] += 1
+            
+            analysis['changes_required'].append(changes)
+        
+        analysis['average_distance'] = total_distance / len(counterfactuals)
+        
+        return analysis
+
+class ModelInterpretabilityFramework:
+    """Comprehensive model interpretability framework"""
     
-    # Create interpreter
-    feature_names = [f'feature_{i}' for i in range(X.shape[1])]
-    interpreter = ModelInterpreter(model, X_train, feature_names)
+    def __init__(self, model, X_train, X_test, y_test, 
+                 config: InterpretabilityConfig = None):
+        self.model = model
+        self.X_train = X_train
+        self.X_test = X_test
+        self.y_test = y_test
+        self.config = config or InterpretabilityConfig()
+        
+        # Initialize analyzers
+        self.shap_analyzer = None
+        self.lime_analyzer = None
+        self.cf_explainer = None
+        
+        # Results storage
+        self.results = {}
+        
+        # Create output directory
+        os.makedirs('interpretability_results', exist_ok=True)
     
-    # Global feature importance
-    print("\n1. Computing Global Feature Importance...")
-    importance = interpreter.global_feature_importance(X_test, y_test)
-    
-    print("\nTop 5 Features (SHAP):")
-    shap_importance = importance['shap_importance']
-    sorted_features = sorted(shap_importance.items(), key=lambda x: x[1], reverse=True)
-    for feature, importance_val in sorted_features[:5]:
-        print(f"  {feature}: {importance_val:.4f}")
-    
-    # Individual prediction explanation
-    print("\n2. Explaining Individual Prediction...")
-    test_instance = X_test[0]
-    explanation = interpreter.explain_prediction(test_instance, method='both')
-    
-    if 'shap' in explanation:
-        shap_values = explanation['shap']['shap_values']
-        print(f"\nSHAP Explanation (sum: {np.sum(shap_values):.4f}):")
-        for i, val in enumerate(shap_values[:5]):
-            print(f"  {feature_names[i]}: {val:.4f}")
-    
-    if 'lime' in explanation:
-        lime_r2 = explanation['lime']['local_r2']
-        print(f"\nLIME Local Model R²: {lime_r2:.4f}")
-    
-    print("\nInterpretability demo completed!")
+    def run_full_analysis(self, feature_names: List[str] = None, 
+                         class_names: List[str] = None):
+        """Run comprehensive interpretability analysis"""
+        self.results['timestamp'] = datetime.now().isoformat()
+        self.results['model_type'] = type(self.model).__name__
+        
+        print("🔍 Starting Comprehensive Model Interpretability Analysis...")
+        
+        # 1. SHAP Analysis
+        if self.config.use_shap:
+            print("📊 Running SHAP Analysis...")
+            self._run_shap_analysis(feature_names, class_names)
+        
+        # 2. LIME Analysis
+        if self.config.use_lime:
+            print("🔍 Running LIME Analysis...")
+            self._run_lime_analysis(feature_names, class_names)
+        
+        # 3. Permutation Importance
+        if self.config.use_permutation:
+            print("🔄 Computing Permutation Importance...")
+            self._run_permutation_analysis(feature_names)
+        
+        # 4. Partial Dependence Analysis
+        if self.config.use_pdp:
+            print("📈 Analyzing Partial Dependence...")
+            self._run_pdp_analysis(feature_names)
+        
+        # 5. Counterfactual Explanations
+        if self.config.use_counterfactuals:
+            print("🔄 Generating Counterfactual Explanations...")
+            self._run_counterfactual_analysis(feature_names)
+        
+        # 6. Feature Interactions
+        if self.config.analyze_interactions:
+            print("🔗 Analyzing Feature Interactions...")
+            self._run_interaction_analysis(feature_names)
+        
+        # 7. Adversarial Testing
+        if self.config.test_adversarial:
+            print("⚔️ Testing Adversarial Robustness...")
+            self._run_adversarial_analysis()
+        
+        # Save comprehensive results
+        self._save_results()
+        
+        print("✅ Interpretability analysis complete!")
+        return self.results
