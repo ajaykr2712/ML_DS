@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LLM-Based Telemetry Troubleshooting Dashboard</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f4f6f8;
+    color: #333;
+  }
+  h1, h2 {
+    color: #004080;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 20px;
+    background: white;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+  }
+  th {
+    background-color: #004080;
+    color: white;
+  }
+  tr:hover {
+    background-color: #e6f0ff;
+    cursor: pointer;
+  }
+  .status-Healthy {
+    color: green;
+    font-weight: bold;
+  }
+  .status-Warning {
+    color: orange;
+    font-weight: bold;
+  }
+  .status-Critical {
+    color: red;
+    font-weight: bold;
+  }
+  #detailPanel {
+    background: white;
+    padding: 15px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  pre {
+    background: #eef3f7;
+    padding: 10px;
+    overflow-x: auto;
+  }
+  #topology {
+    background: white;
+    padding: 15px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    font-family: monospace;
+    white-space: pre;
+    margin-bottom: 20px;
+  }
+  #summary {
+    background: white;
+    padding: 15px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h1>LLM-Based Telemetry Troubleshooting Dashboard</h1>
+
+<h2>Network Devices Overview</h2>
+<table id="deviceTable">
+  <thead>
+    <tr>
+      <th>Device Name</th>
+      <th>Device Type</th>
+      <th>IP Address</th>
+      <th>Status</th>
+      <th>Detected Issue</th>
+      <th>Recommended Action</th>
+      <th>Last Updated</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Rows inserted by JavaScript -->
+  </tbody>
+</table>
+
+<h2>Detailed Issue and Recommendation Panel</h2>
+<div id="detailPanel">
+  <p><strong>Select a device from the table above to see details.</strong></p>
+</div>
+
+<h2>Network Topology and Issue Routing (Simplified View)</h2>
+<div id="topology">
+[Engineer Dashboard]
+       |
+       +-- Nexus-9000-01 (Issue: Interface Down)
+       |
+       +-- IOS-XE-Router-02 (Issue: High CPU)
+       |
+       +-- Catalyst-9300-03 (Healthy)
+       |
+       +-- Nexus-9500-04 (Issue: BGP Flapping)
+</div>
+
+<h2>Summary</h2>
+<div id="summary">
+  Total Devices Monitored: 50<br />
+  Devices with Issues: 12<br />
+  Critical Issues: 3<br />
+  Warnings: 9<br />
+  Healthy Devices: 35
+</div>
+
+<script>
+  const devices = [
+    {
+      name: "Nexus-9000-01",
+      type: "Cisco Nexus",
+      ip: "10.1.1.10",
+      status: "Warning",
+      issue: "Interface Gig1/0/1 Down",
+      action: "Check interface status; restart interface",
+      lastUpdated: "2025-07-28 14:35:22",
+      logSnippet: `[14:30:15] %LINK-3-UPDOWN: Interface GigabitEthernet1/0/1, changed state to down
+[14:30:16] %ETHCNTR-3-IF_DOWN: Interface GigabitEthernet1/0/1 is down`,
+      recommendation: [
+        "Verify physical cable connections on interface Gig1/0/1.",
+        "Check interface configuration and status using `show interface Gig1/0/1`.",
+        "Restart the interface with `shutdown` followed by `no shutdown`.",
+        "If issue persists, escalate to hardware diagnostics."
+      ]
+    },
+    {
+      name: "IOS-XE-Router-02",
+      type: "Cisco IOS XE",
+      ip: "10.1.2.20",
+      status: "Critical",
+      issue: "High CPU utilization detected",
+      action: "Investigate running processes; reload device",
+      lastUpdated: "2025-07-28 14:33:10",
+      logSnippet: `[14:32:00] CPU utilization reached 95%
+[14:32:05] Process xyz consuming high CPU`,
+      recommendation: [
+        "Identify high CPU processes using `show processes cpu sorted`.",
+        "Restart or optimize problematic processes.",
+        "Consider device reload if CPU remains high."
+      ]
+    },
+    {
+      name: "Catalyst-9300-03",
+      type: "Cisco Catalyst",
+      ip: "10.1.3.30",
+      status: "Healthy",
+      issue: "None",
+      action: "No action required",
+      lastUpdated: "2025-07-28 14:34:50",
+      logSnippet: "",
+      recommendation: []
+    },
+    {
+      name: "Nexus-9500-04",
+      type: "Cisco Nexus",
+      ip: "10.1.4.40",
+      status: "Warning",
+      issue: "BGP neighbor flapping",
+      action: "Verify BGP configuration; check link status",
+      lastUpdated: "2025-07-28 14:32:05",
+      logSnippet: `[14:31:00] BGP neighbor 10.1.4.41 went down
+[14:31:10] BGP neighbor 10.1.4.41 came up`,
+      recommendation: [
+        "Check BGP configuration consistency.",
+        "Verify physical and logical link status.",
+        "Monitor for repeated flapping and escalate if needed."
+      ]
+    }
+  ];
+
+  const tbody = document.querySelector("#deviceTable tbody");
+  const detailPanel = document.getElementById("detailPanel");
+
+  function createStatusSpan(status) {
+    const span = document.createElement("span");
+    span.textContent = status;
+    span.className = "status-" + status;
+    return span;
+  }
+
+  function renderTable() {
+    devices.forEach((device, index) => {
+      const tr = document.createElement("tr");
+      tr.tabIndex = 0; // make row focusable for accessibility
+      tr.addEventListener("click", () => showDetails(index));
+      tr.addEventListener("keypress", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          showDetails(index);
+        }
+      });
+
+      tr.innerHTML = `
+        <td>${device.name}</td>
+        <td>${device.type}</td>
+        <td>${device.ip}</td>
+        <td></td>
+        <td>${device.issue}</td>
+        <td>${device.action}</td>
+        <td>${device.lastUpdated}</td>
+      `;
+      tr.querySelector("td:nth-child(4)").appendChild(createStatusSpan(device.status));
+      tbody.appendChild(tr);
+    });
+  }
+
+  function showDetails(index) {
+    const d = devices[index];
+    if (d.status === "Healthy") {
+      detailPanel.innerHTML = `
+        <p><strong>Selected Device:</strong> ${d.name}</p>
+        <p><strong>Status:</strong> <span class="status-Healthy">${d.status}</span></p>
+        <p><strong>Issue Detected:</strong> None</p>
+        <p><strong>Recommendation:</strong> No action required.</p>
+      `;
+      return;
+    }
+    detailPanel.innerHTML = `
+      <p><strong>Selected Device:</strong> ${d.name}</p>
+      <p><strong>Issue Detected:</strong> ${d.issue}</p>
+      <p><strong>Log Snippet:</strong></p>
+      <pre>${d.logSnippet}</pre>
+      <p><strong>LLM Troubleshooting Recommendation:</strong></p>
+      <ul>
+        ${d.recommendation.map(item => `<li>${item}</li>`).join("")}
+      </ul>
+    `;
+  }
+
+  renderTable();
+</script>
+
+</body>
+</html>
