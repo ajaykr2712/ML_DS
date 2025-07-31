@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LLM-Based Telemetry Troubleshooting Dashboard</title>
+<style>
+  /* Reset and base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f4f8;
+    color: #2c3e50;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  #sidebar {
+    width: 280px;
+    background: #1a2935;
+    color: #ecf0f1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+  }
+  #sidebar h1 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #2980b9;
+    padding-bottom: 10px;
+  }
+  #sidebar nav a {
+    color: #bdc3c7;
+    text-decoration: none;
+    padding: 12px 15px;
+    margin: 5px 0;
+    border-radius: 6px;
+    display: block;
+    font-weight: 600;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  #sidebar nav a:hover, #sidebar nav a.active {
+    background-color: #2980b9;
+    color: #fff;
+  }
+
+  /* Main content */
+  #main {
+    flex-grow: 1;
+    padding: 30px 40px;
+    overflow-y: auto;
+  }
+  h2 {
+    color: #34495e;
+    margin-bottom: 15px;
+    font-weight: 700;
+    border-bottom: 2px solid #2980b9;
+    padding-bottom: 8px;
+  }
+
+  /* Table styling */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  thead tr {
+    background: #2980b9;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  thead th {
+    padding: 14px 20px;
+    text-align: left;
+  }
+  tbody tr {
+    background: #ffffff;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  tbody tr:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+  }
+  tbody td {
+    padding: 14px 20px;
+    vertical-align: middle;
+    font-size: 0.9rem;
+    color: #34495e;
+  }
+
+  /* Status badges */
+  .status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #fff;
+    text-align: center;
+    min-width: 80px;
+    user-select: none;
+  }
+  .status-Healthy {
+    background-color: #27ae60;
+    box-shadow: 0 0 8px #27ae60aa;
+  }
+  .status-Warning {
+    background-color: #e67e22;
+    box-shadow: 0 0 8px #e67e22aa;
+  }
+  .status-Critical {
+    background-color: #c0392b;
+    box-shadow: 0 0 8px #c0392baa;
+  }
+
+  /* Detail panel */
+  #detailPanel {
+    background: #fff;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    margin-top: 30px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #2c3e50;
+  }
+  #detailPanel strong {
+    color: #2980b9;
+  }
+  #detailPanel pre {
+    background: #ecf0f1;
+    padding: 15px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    margin: 10px 0 20px 0;
+    box-shadow: inset 0 0 8px #bdc3c7;
+  }
+  #detailPanel ul {
+    padding-left: 20px;
+    margin-top: 0;
+  }
+  #detailPanel ul li {
+    margin-bottom: 8px;
+  }
+
+  /* Topology */
+  #topology {
+    background: #fff;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    font-family: 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+    color: #34495e;
+    margin-top: 30px;
+    font-size: 0.95rem;
+  }
+
+  /* Summary */
+  #summary {
+    background: #2980b9;
+    color: #ecf0f1;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-top: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  #summary div {
+    flex: 1 1 180px;
+    background: #3498db;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+  #summary div span {
+    display: block;
+    font-size: 2rem;
+    margin-top: 5px;
+    color: #ecf0f1;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    body {
+      flex-direction: column;
+    }
+    #sidebar {
+      width: 100%;
+      flex-direction: row;
+      overflow-x: auto;
+      padding: 10px 20px;
+    }
+    #sidebar h1 {
+      flex: 0 0 auto;
+      margin-right: 20px;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    #sidebar nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: nowrap;
+    }
+    #sidebar nav a {
+      padding: 10px 15px;
+      margin: 0;
+      white-space: nowrap;
+    }
+    #main {
+      padding: 20px;
+    }
+    #summary {
+      flex-direction: column;
+    }
+    #summary div {
+      flex: 1 1 100%;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <aside id="sidebar" role="navigation" aria-label="Main Navigation">
+    <h1>Telemetry Dashboard</h1>
+    <nav>
+      <a href="#overview" class="active" tabindex="0">Overview</a>
+      <a href="#details" tabindex="0">Details</a>
+      <a href="#topology" tabindex="0">Topology</a>
+      <a href="#summary" tabindex="0">Summary</a>
+    </nav>
+  </aside>
+
+  <main id="main" role="main" tabindex="0">
+    <section id="overview" aria-label="Network Devices Overview">
+      <h2>Network Devices Overview</h2>
+      <table id="deviceTable" aria-describedby="overview">
+        <thead>
+          <tr>
+            <th scope="col">Device Name</th>
+            <th scope="col">Device Type</th>
+            <th scope="col">IP Address</th>
+            <th scope="col">Status</th>
+            <th scope="col">Detected Issue</th>
+            <th scope="col">Recommended Action</th>
+            <th scope="col">Last Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Rows inserted by JavaScript -->
+        </tbody>
+      </table>
+    </section>
+
+    <section id="details" aria-label="Detailed Issue and Recommendation Panel">
+      <h2>Detailed Issue and Recommendation Panel</h2>
+      <div id="detailPanel" tabindex="0">
+        <p><strong>Select a device from the table above to see details.</strong></p>
+      </div>
+    </section>
+
+    <section id="topology" aria-label="Network Topology and Issue Routing">
+      <h2>Network Topology and Issue Routing (Simplified View)</h2>
+      <div id="topology" tabindex="0">
+[Engineer Dashboard]
+       |
+       +-- Nexus-9000-01 (Issue: Interface Down)
+       |
+       +-- IOS-XE-Router-02 (Issue: High CPU)
+       |
+       +-- Catalyst-9300-03 (Healthy)
+       |
+       +-- Nexus-9500-04 (Issue: BGP Flapping)
+      </div>
+    </section>
+
+    <section id="summary" aria-label="Summary of Network Health Metrics">
+      <h2>Summary</h2>
+      <div>
+        Total Devices Monitored
+        <span>50</span>
+      </div>
+      <div>
+        Devices with Issues
+        <span>12</span>
+      </div>
+      <div>
+        Critical Issues
+        <span>3</span>
+      </div>
+      <div>
+        Warnings
+        <span>9</span>
+      </div>
+      <div>
+        Healthy Devices
+        <span>35</span>
+      </div>
+    </section>
+  </main>
+
+<script>
+  const devices = [
+    {
+      name: "Nexus-9000-01",
+      type: "Cisco Nexus",
+      ip: "10.1.1.10",
+      status: "Warning",
+      issue: "Interface Gig1/0/1 Down",
+      action: "Check interface status; restart interface",
+      lastUpdated: "2025-07-28 14:35:22",
+      logSnippet: `[14:30:15] %LINK-3-UPDOWN: Interface GigabitEthernet1/0/1, changed state to down
+[14:30:16] %ETHCNTR-3-IF_DOWN: Interface GigabitEthernet1/0/1 is down`,
+      recommendation: [
+        "Verify physical cable connections on interface Gig1/0/1.",
+        "Check interface configuration and status using `show interface Gig1/0/1`.",
+        "Restart the interface with `shutdown` followed by `no shutdown`.",
+        "If issue persists, escalate to hardware diagnostics."
+      ]
+    },
+    {
+      name: "IOS-XE-Router-02",
+      type: "Cisco IOS XE",
+      ip: "10.1.2.20",
+      status: "Critical",
+      issue: "High CPU utilization detected",
+      action: "Investigate running processes; reload device",
+      lastUpdated: "2025-07-28 14:33:10",
+      logSnippet: `[14:32:00] CPU utilization reached 95%
+[14:32:05] Process xyz consuming high CPU`,
+      recommendation: [
+        "Identify high CPU processes using `show processes cpu sorted`.",
+        "Restart or optimize problematic processes.",
+        "Consider device reload if CPU remains high."
+      ]
+    },
+    {
+      name: "Catalyst-9300-03",
+      type: "Cisco Catalyst",
+      ip: "10.1.3.30",
+      status: "Healthy",
+      issue: "None",
+      action: "No action required",
+      lastUpdated: "2025-07-28 14:34:50",
+      logSnippet: "",
+      recommendation: []
+    },
+    {
+      name: "Nexus-9500-04",
+      type: "Cisco Nexus",
+      ip: "10.1.4.40",
+      status: "Warning",
+      issue: "BGP neighbor flapping",
+      action: "Verify BGP configuration; check link status",
+      lastUpdated: "2025-07-28 14:32:05",
+      logSnippet: `[14:31:00] BGP neighbor 10.1.4.41 went down
+[14:31:10] BGP neighbor 10.1.4.41 came up`,
+      recommendation: [
+        "Check BGP configuration consistency.",
+        "Verify physical and logical link status.",
+        "Monitor for repeated flapping and escalate if needed."
+      ]
+    }
+  ];
+
+  const tbody = document.querySelector("#deviceTable tbody");
+  const detailPanel = document.getElementById("detailPanel");
+
+  function createStatusBadge(status) {
+    const span = document.createElement("span");
+    span.textContent = status;
+    span.className = "status-badge status-" + status;
+    return span;
+  }
+
+  function renderTable() {
+    devices.forEach((device, index) => {
+      const tr = document.createElement("tr");
+      tr.tabIndex = 0; // make row focusable for accessibility
+      tr.setAttribute("role", "button");
+      tr.setAttribute("aria-pressed", "false");
+      tr.addEventListener("click", () => showDetails(index));
+      tr.addEventListener("keypress", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          showDetails(index);
+        }
+      });
+
+      tr.innerHTML = `
+        <td>${device.name}</td>
+        <td>${device.type}</td>
+        <td>${device.ip}</td>
+        <td></td>
+        <td>${device.issue}</td>
+        <td>${device.action}</td>
+        <td>${device.lastUpdated}</td>
+      `;
+      tr.querySelector("td:nth-child(4)").appendChild(createStatusBadge(device.status));
+      tbody.appendChild(tr);
+    });
+  }
+
+  function showDetails(index) {
+    const d = devices[index];
+    if (d.status === "Healthy") {
+      detailPanel.innerHTML = `
+        <p><strong>Selected Device:</strong> ${d.name}</p>
+        <p><strong>Status:</strong> <span class="status-badge status-Healthy">${d.status}</span></p>
+        <p><strong>Issue Detected:</strong> None</p>
+        <p><strong>Recommendation:</strong> No action required.</p>
+      `;
+      return;
+    }
+    detailPanel.innerHTML = `
+      <p><strong>Selected Device:</strong> ${d.name}</p>
+      <p><strong>Issue Detected:</strong> ${d.issue}</p>
+      <p><strong>Log Snippet:</strong></p>
+      <pre>${d.logSnippet}</pre>
+      <p><strong>Troubleshooting Recommendations:</strong></p>
+      <ul>
+        ${d.recommendation.map(item => `<li>${item}</li>`).join("")}
+      </ul>
+    `;
+  }
+
+  renderTable();
+</script>
+
+</body>
+</html>
